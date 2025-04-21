@@ -107,9 +107,9 @@ codequery/
 ## 📌 Goals
 
 - [x] Extract functions using AST
-- [] Embed code using CodeBERT
-- [] Store embeddings in Chroma
-- [] Natural language query → nearest code match
+- [ ] Embed code using CodeBERT
+- [ ] Store embeddings in Chroma
+- [ ] Natural language query → nearest code match
 - [ ] Add web UI (Flask or Streamlit)
 - [ ] Support multiple languages (JavaScript, Go, etc.)
 - [ ] Ranking results based on usage frequency
