@@ -1,5 +1,6 @@
 # Virtual environment
 venv/
+/new_venv
 
 # Testing files
 test/

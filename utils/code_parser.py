@@ -24,4 +24,4 @@ def parse(file):
     return functions
 
 
-print(parse("testing.py") )
+print(parse("test/testing.py") )
