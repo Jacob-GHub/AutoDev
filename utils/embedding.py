@@ -1,14 +1,12 @@
-from sentence_transformers import SentenceTransformer, util
+from transformers import AutoTokenizer, AutoModel
+import torch
 
-def embed(code,query):
-    # Use a valid model — CodeBERT is trained for code
-    model = SentenceTransformer("microsoft/codebert-base")
+tokenizer = AutoTokenizer.from_pretrained("microsoft/codebert-base")
+model = AutoModel.from_pretrained("microsoft/codebert-base")
 
-    # Encode code and query
-    code_emb = model.encode(code, convert_to_tensor=True)
-    query_emb = model.encode(query, convert_to_tensor=True)
-
-    # Compute similarity
-    sim = util.cos_sim(code_emb, query_emb)
-    print(sim)
-    print(sim.item())
+def embed_code(code_string):
+    inputs = tokenizer(code_string, return_tensors="pt")
+    outputs = model(**inputs)
+    # print(outputs)
+    return outputs.last_hidden_state.mean(dim=1).detach().numpy()[0]  # [batch_size, hidden_size]
+# print(embeddings)
