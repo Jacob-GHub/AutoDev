@@ -21,7 +21,4 @@ def parse(file):
                 "code":code,
                 "file":file
             })
-    return functions
-
-
-print(parse("test/testing.py") )
+    return functions # returns a list of maps
