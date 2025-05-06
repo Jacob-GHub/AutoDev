@@ -1,4 +1,4 @@
-# 🔍 CodeQuery — Natural Language Search for Your Codebase
+# 🔍 AutoDev — Natural Language Search for Your Codebase
 
 CodeQuery is a tool that lets you **ask natural language questions about your codebase**, and get back the **most relevant functions or code chunks**, using machine learning and semantic search.
 
