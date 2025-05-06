@@ -1,6 +1,6 @@
 # 🔍 AutoDev — Natural Language Search for Your Codebase
 
-CodeQuery is a tool that lets you **ask natural language questions about your codebase**, and get back the **most relevant functions or code chunks**, using machine learning and semantic search.
+AutoDev is a tool that lets you **ask natural language questions about your codebase**, and get back the **most relevant functions or code chunks**, using machine learning and semantic search.
 
 > 💬 Ask things like:  
 > "Where do we add a new user?" → returns `def create_user(...)`
