@@ -37,8 +37,8 @@ def connect_to_db():
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/yourusername/codequery
-cd codequery
+git clone https://github.com/yourusername/autodev
+cd autodev
 ```
 
 ### 2. Install Dependencies
@@ -92,7 +92,7 @@ You can also change:
 ## 📁 Project Structure
 
 ```
-codequery/
+autodev/
 ├── index_codebase.py       # Parses code and populates Chroma
 ├── query.py                # Search interface
 ├── utils/
