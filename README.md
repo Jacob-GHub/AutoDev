@@ -1,6 +1,6 @@
-# 🔍 CodeQuery — Natural Language Search for Your Codebase
+# 🔍 AutoDev — Natural Language Search for Your Codebase
 
-CodeQuery is a tool that lets you **ask natural language questions about your codebase**, and get back the **most relevant functions or code chunks**, using machine learning and semantic search.
+AutoDev is a tool that lets you **ask natural language questions about your codebase**, and get back the **most relevant functions or code chunks**, using machine learning and semantic search.
 
 > 💬 Ask things like:  
 > "Where do we add a new user?" → returns `def create_user(...)`
@@ -37,8 +37,8 @@ def connect_to_db():
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/yourusername/codequery
-cd codequery
+git clone https://github.com/yourusername/autodev
+cd autodev
 ```
 
 ### 2. Install Dependencies
@@ -92,7 +92,7 @@ You can also change:
 ## 📁 Project Structure
 
 ```
-codequery/
+autodev/
 ├── index_codebase.py       # Parses code and populates Chroma
 ├── query.py                # Search interface
 ├── utils/
