@@ -1,6 +1,7 @@
 # Virtual environment
 venv/
 /new_venv
+/myenv
 
 # Testing files
 test/
@@ -10,4 +11,6 @@ __pycache__/
 *.pyc
 *.pyo
 
+.env
 .DS_Store
+

@@ -1,14 +1,20 @@
-from utils.code_parser import parse
-from utils.embed_tree import embed_parse_tree
-from utils.embedding import embed_code,embed_text
+from pathlib import Path
+import pandas as pd
+from utils.embedding import get_embedding
+from utils.code_parser import extract_functions_from_repo
 
-collection = embed_parse_tree(("test/testing.py"))
+root_dir = Path.home()
+print(root_dir)
+code_root = root_dir /'Desktop'/ 'codequery'/'test'
 
-# results = collection.get(include=["documents", "metadatas", "embeddings"])
-# print(results)
+print(code_root)
+# Extract all functions from the repository
+all_funcs = extract_functions_from_repo(code_root)
 
-results = collection.query(query_embeddings=[embed_code("finds the vowel")], n_results=3)
 
-for doc, dist in zip(results['documents'][0], results['distances'][0]):
-    print(f"{doc} → distance: {dist:.4f}")
-
+df = pd.DataFrame(all_funcs)
+print(df)
+df['code_embedding'] = df['code'].apply(lambda x: get_embedding(x, model='text-embedding-3-small'))
+df['filepath'] = df['filepath'].map(lambda x: Path(x).relative_to(code_root))
+df.to_csv("data/code_search_openai-python.csv", index=False)
+df.head()
