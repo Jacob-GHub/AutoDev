@@ -5,3 +5,9 @@ torch>=1.10.0,<2.3.0
 scikit-learn
 numpy==1.26.4
 scipy
+pandas
+openai
+python-dotenv
+matplotlib
+plotly
+chromadb

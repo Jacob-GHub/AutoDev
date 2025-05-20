@@ -1,20 +1,32 @@
-from pathlib import Path
-import pandas as pd
-from utils.embedding import get_embedding
-from utils.code_parser import extract_functions_from_repo
+from utils.utils import get_embedding
+from chroma import create_collection
 
-root_dir = Path.home()
-print(root_dir)
-code_root = root_dir /'Desktop'/ 'codequery'/'test'
+collection = create_collection()
 
-print(code_root)
-# Extract all functions from the repository
-all_funcs = extract_functions_from_repo(code_root)
+def print_collection():
+    results = collection.get(include=["documents", "metadatas", "embeddings"])
+    for uid, doc, meta in zip(results["ids"], results["documents"], results["metadatas"]):
+        print(f"🆔 ID: {uid}")
+        print(f"📄 Code:\n{doc}")
+        print(f"📝 Metadata: {meta}")
+        print("-" * 60)
 
+def search_functions(collection, code_query, n=3):
+    embedding = get_embedding(code_query, model='text-embedding-3-small')
+    res = collection.query(
+        query_embeddings=[embedding],
+        n_results=n,
+        include=["documents", "metadatas", "distances"]
+    )
+    return res
 
-df = pd.DataFrame(all_funcs)
-print(df)
-df['code_embedding'] = df['code'].apply(lambda x: get_embedding(x, model='text-embedding-3-small'))
-df['filepath'] = df['filepath'].map(lambda x: Path(x).relative_to(code_root))
-df.to_csv("data/code_search_openai-python.csv", index=False)
-df.head()
+# print_collection()
+
+query = input("Enter your query: ")
+res = search_functions(collection, query, n=3)
+
+if not res['documents'][0]:
+    print("No results found.")
+else:
+    for doc, meta, dist in zip(res['documents'][0], res['metadatas'][0], res['distances'][0]):
+        print(f"\n📄 File: {meta['filepath']}\n🔎 Distance: {dist:.4f}\n🧠 Code:\n{doc}")

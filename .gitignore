@@ -13,4 +13,4 @@ __pycache__/
 
 .env
 .DS_Store
-
+chroma_db
