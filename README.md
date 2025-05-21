@@ -9,8 +9,8 @@ AutoDev is a tool that lets you **ask natural language questions about your code
 
 ## 🧠 How It Works
 
-1. **Parses your codebase** using Python's `ast` module to extract functions.
-2. **Generates vector embeddings** for each code chunk using a transformer model (e.g., CodeBERT).
+1. **Parses your codebase** and extracts each function
+2. **Generates vector embeddings** for each code chunk using openAI's embedding model.
 3. **Stores the embeddings** in a Chroma vector database.
 4. **Embeds user questions** and performs a similarity search.
 5. **Returns the most relevant code snippets**.
@@ -46,13 +46,6 @@ cd autodev
 ```bash
 pip install -r requirements.txt
 ```
-
-Main libraries used:
-- `sentence-transformers`
-- `chromadb`
-- `tqdm`
-- `ast`
-- `python-dotenv` (optional for config)
 
 ### 3. Run the Indexer
 
@@ -106,10 +99,10 @@ autodev/
 
 ## 📌 Goals
 
-- [x] Extract functions using AST
-- [ ] Embed code using CodeBERT
-- [ ] Store embeddings in Chroma
-- [ ] Natural language query → nearest code match
+- [x] Extract functions from a repo
+- [x] Embed code using openAI
+- [x] Store embeddings in Chroma
+- [x] Natural language query → nearest code match
 - [ ] Add web UI (Flask or Streamlit)
 - [ ] Support multiple languages (JavaScript, Go, etc.)
 - [ ] Ranking results based on usage frequency
