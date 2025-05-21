@@ -1,9 +1,17 @@
 from utils.utils import get_embedding
 from chroma import create_collection
 
-collection = create_collection()
+def query(collection, query_msg):
+    res = search_functions(collection, query_msg, n=3)
 
-def print_collection():
+    if not res['documents'][0]:
+        return("No results found.")
+    else:
+        for doc, meta, dist in zip(res['documents'][0], res['metadatas'][0], res['distances'][0]):
+            return(f"\n📄 File: {meta['filepath']}\n🔎 Distance: {dist:.4f}\n🧠 Code:\n{doc}")
+
+
+def print_collection(collection):
     results = collection.get(include=["documents", "metadatas", "embeddings"])
     for uid, doc, meta in zip(results["ids"], results["documents"], results["metadatas"]):
         print(f"🆔 ID: {uid}")
@@ -19,14 +27,3 @@ def search_functions(collection, code_query, n=3):
         include=["documents", "metadatas", "distances"]
     )
     return res
-
-# print_collection()
-
-query = input("Enter your query: ")
-res = search_functions(collection, query, n=3)
-
-if not res['documents'][0]:
-    print("No results found.")
-else:
-    for doc, meta, dist in zip(res['documents'][0], res['metadatas'][0], res['distances'][0]):
-        print(f"\n📄 File: {meta['filepath']}\n🔎 Distance: {dist:.4f}\n🧠 Code:\n{doc}")

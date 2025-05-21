@@ -55,7 +55,7 @@ def extract_functions_from_repo(code_root):
     print(f'Total number of .py files: {num_files}')
 
     if num_files == 0:
-        print('Verify openai-python repo exists and code_root is set correctly.')
+        print('Verify python repo exists and code_root is set correctly.')
         return None
 
     all_funcs = [

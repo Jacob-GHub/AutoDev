@@ -1,10 +1,8 @@
 # Virtual environment
-venv/
-/new_venv
-/myenv
+venv
 
 # Testing files
-test/
+test
 
 # Python cache files
 __pycache__/

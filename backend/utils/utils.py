@@ -1,10 +1,9 @@
-
-from typing import List
+import os
+import numpy as np
 from scipy import spatial
 from openai import OpenAI
-import numpy as np
-import os
 from dotenv import load_dotenv
+from typing import List
 
 
 load_dotenv()
