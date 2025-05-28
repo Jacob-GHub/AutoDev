@@ -1,0 +1,33 @@
+{
+  "manifest_version": 3,
+  "name": "frontend",
+  "version": "1.0.0",
+  "description": "chrome extension for react",
+  "action": {
+    "default_popup": "pages/popup.html",
+    "default_icon": "assets/logo.png"
+  },
+  "background": {
+    "service_worker": "js/background.js"
+  },
+  "host_permissions": ["<all_urls>"],
+  "content_scripts": [
+    {
+      "matches": ["*://*/*"],
+      "js": ["js/content.js"],
+      "run_at": "document_end"
+    }
+  ],
+  "options_page": "pages/options.html",
+  "icons": {
+    "16": "assets/logo.png",
+    "48": "assets/logo.png",
+    "128": "assets/logo.png"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["assets/*"],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}
