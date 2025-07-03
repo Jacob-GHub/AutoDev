@@ -1,26 +1,37 @@
-from fastapi import FastAPI, UploadFile, Form
-from pathlib import Path
-import shutil
+# from fastapi import FastAPI, UploadFile, Form
+# from pathlib import Path
+# import shutil
+from flask import Flask, request, jsonify
+from flask_cors import CORS  
+
 from chroma import create_collection
 from query import query
 
-app = FastAPI()
-    
-collection = None 
+app = Flask(__name__)
+CORS(app)
 
-@app.post("/upload/")
-async def upload_codebase(file: UploadFile):
-    global collection
-    zip_path = Path("temp") / file.filename
-    with open(zip_path, "wb") as f:
-        f.write(await file.read())
-    shutil.unpack_archive(str(zip_path), "unzipped")
-    collection = create_collection("unzipped")
-    return {"status": "indexed"}
+@app.route("/api/ask", methods=["POST"])
+def ask():
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "No JSON received"}), 400
+        print('rest')
+        question = data.get("question")
+        repo_url = data.get("repoUrl")
+        print(question,repo_url)
+        if not question or not repo_url:
+            return jsonify({"error": "Missing question or repoUrl"}), 400
 
-@app.post("/query/")
-async def search_codebase(query: str = Form(...)):
-    if not collection:
-        return {"error": "No collection loaded. Please upload codebase first."}
-    results = query(collection, query)
-    return {"results": results}
+        print(question,repo_url)
+        # collection = create_collection(repo_url)
+        # result = query(collection, question)
+        # return jsonify({"answer": result})
+        return jsonify({"answer": "the fejrfeirfjeoirfjoe fjoerojfeirf fjeorjfeoijrf efjeorifjeioijroifje foerjofie"})
+    except Exception as e:
+        print("Server error:", str(e))  # Log to terminal
+        return jsonify({"error": f"Internal server error: {str(e)}"}), 500
+
+
+if __name__ == "__main__":
+    app.run(port=3000)

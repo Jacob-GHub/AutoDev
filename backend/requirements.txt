@@ -1,7 +1,5 @@
-sentence-transformers==2.2.2
-transformers==4.31.0
 huggingface-hub==0.16.4
-torch>=1.10.0,<2.3.0
+torch>=1.10.0
 scikit-learn
 numpy==1.26.4
 scipy
@@ -11,3 +9,9 @@ python-dotenv
 matplotlib
 plotly
 chromadb
+flask
+flask-cors
+numpy
+openai
+chromadb
+gitpython
