@@ -4,12 +4,22 @@ from chroma import create_collection
 def query(collection, query_msg):
     res = search_functions(collection, query_msg, n=3)
 
-    if not res['documents'][0]:
-        return("No results found.")
-    else:
-        for doc, meta, dist in zip(res['documents'][0], res['metadatas'][0], res['distances'][0]):
-            return(f"\n📄 File: {meta['filepath']}\n🔎 Distance: {dist:.4f}\n🧠 Code:\n{doc}")
+    documents = res.get("documents", [[]])[0]
+    metadatas = res.get("metadatas", [[]])[0]
+    distances = res.get("distances", [[]])[0]
 
+    if not documents:
+        return {"results": []}
+
+    results = []
+    for doc, meta, dist in zip(documents, metadatas, distances):
+        results.append({
+            "file": meta["filepath"],
+            "score": round(1 - dist, 4),
+            "code": doc.strip(),
+        })
+
+    return {"results": results}
 
 def print_collection(collection):
     results = collection.get(include=["documents", "metadatas", "embeddings"])

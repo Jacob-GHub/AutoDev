@@ -4,7 +4,7 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS  
 
-from chroma import create_collection
+from chroma import create_collection,clone_repo
 from query import query
 
 app = Flask(__name__)
@@ -24,10 +24,11 @@ def ask():
             return jsonify({"error": "Missing question or repoUrl"}), 400
 
         print(question,repo_url)
-        # collection = create_collection(repo_url)
-        # result = query(collection, question)
-        # return jsonify({"answer": result})
-        return jsonify({"answer": "the fejrfeirfjeoirfjoe fjoerojfeirf fjeorjfeoijrf efjeorifjeioijroifje foerjofie"})
+        clone = clone_repo(repo_url)
+        result = query(clone, question)
+        print(jsonify({"answer": result}))
+        return jsonify({"answer": result})
+        # return jsonify({"answer": "the fejrfeirfjeoirfjoe fjoerojfeirf fjeorjfeoijrf efjeorifjeioijroifje foerjofie"})
     except Exception as e:
         print("Server error:", str(e))  # Log to terminal
         return jsonify({"error": f"Internal server error: {str(e)}"}), 500

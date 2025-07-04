@@ -2,10 +2,32 @@ from pathlib import Path
 from utils.utils import get_embedding
 from utils.code_parser import extract_functions_from_repo
 import chromadb
+from tempfile import mkdtemp
+import subprocess
+from pathlib import Path
+import shutil
+
+def clone_repo(github_url: str):
+    # Create a temp folder
+    tmp_path = Path(mkdtemp())
+
+    try:
+        # Clone the repo
+        subprocess.run(["git", "clone", github_url, str(tmp_path)], check=True)
+
+        # Now pass it to your existing local folder logic
+        return create_collection(tmp_path)
+
+    except Exception as e:
+        print("Error cloning repo:", e)
+        return None
+    finally:
+        # Optionally clean up
+        pass  # shutil.rmtree(tmp_path) if you want to remove it later
+
 
 def create_collection(path):
-    root_dir = Path.home()
-    code_root = root_dir / path
+    code_root = Path(path)
 
     chroma_client = chromadb.PersistentClient(path="chroma_db")
     collection = chroma_client.get_or_create_collection(
@@ -15,6 +37,10 @@ def create_collection(path):
 
     # Extract all functions from the repository
     all_funcs = extract_functions_from_repo(code_root)
+
+    if not all_funcs:
+        print("No functions found. Skipping collection creation.")
+        return collection  # or return None if that makes more sense
 
     # Get existing IDs from the DB
     existing = collection.get(include=["metadatas"])
