@@ -28,7 +28,7 @@ def ask():
         result = query(clone, question)
         print(jsonify({"answer": result}))
         return jsonify({"answer": result})
-        # return jsonify({"answer": "the fejrfeirfjeoirfjoe fjoerojfeirf fjeorjfeoijrf efjeorifjeioijroifje foerjofie"})
+
     except Exception as e:
         print("Server error:", str(e))  # Log to terminal
         return jsonify({"error": f"Internal server error: {str(e)}"}), 500

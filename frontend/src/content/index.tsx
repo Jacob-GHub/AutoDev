@@ -19,15 +19,29 @@ function App() {
   const [inputValue, setInputValue] = useState('')
   const [loading, setLoading] = useState(false)
   const [answer, setAnswer] = useState([])
+  const [submitted, setSubmitted] = useState(false)
 
   const handleClick = () => {
     setClicked(!clicked)
   }
+
+  const extractRepoUrl = () => {
+    const match = window.location.pathname.match(/^\/([^/]+)\/([^/]+)/)
+    if (!match) return null
+
+    const owner = match[1]
+    const repo = match[2]
+
+    return `https://github.com/${owner}/${repo}.git`
+  }
+
+  const repoUrl = extractRepoUrl()
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     console.log(inputValue)
     setLoading(true)
-    const repoUrl = window.location.href
+    setSubmitted(false)
 
     try {
       const response = await fetch('http://127.0.0.1:3000/api/ask', {
@@ -37,7 +51,7 @@ function App() {
         },
         body: JSON.stringify({
           question: inputValue,
-          repoUrl: repoUrl,
+          repoUrl: extractRepoUrl(),
         }),
       })
 
@@ -49,6 +63,7 @@ function App() {
       setAnswer([])
     }
     setLoading(false)
+    setSubmitted(true)
   }
   return (
     <div className="fixed bottom-36 right-20 bg-white border border-gray-300 shadow-xl rounded-xl p-4 w-[400px] max-h-[80vh] overflow-y-auto text-sm font-sans z-[9999]">
@@ -90,14 +105,14 @@ function App() {
                 🔎 Similarity Score: <span className="font-mono">{result.score}</span>
               </div>
               <SyntaxHighlighter
-                language="python" // or "javascript", "typescript", etc.
+                language="python"
                 style={oneDark}
                 wrapLongLines
                 customStyle={{
                   borderRadius: '0.5rem',
                   fontSize: '0.75rem',
                   padding: '1rem',
-                  background: '#282c34', // optional override
+                  background: '#282c34',
                 }}
               >
                 {result.code}
@@ -106,7 +121,7 @@ function App() {
           ))}
         </div>
       )}
-      {answer.length === 0 && clicked && !loading && (
+      {submitted && answer.length === 0 && clicked && !loading && (
         <div className="mt-4 text-red-500 text-sm">❌ No relevant code found.</div>
       )}
     </div>
