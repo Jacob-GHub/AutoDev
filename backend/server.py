@@ -30,7 +30,7 @@ def ask():
         return jsonify({"answer": result})
 
     except Exception as e:
-        print("Server error:", str(e))  # Log to terminal
+        print("Server error:", str(e)) 
         return jsonify({"error": f"Internal server error: {str(e)}"}), 500
 
 
