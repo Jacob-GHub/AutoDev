@@ -16,16 +16,19 @@ def ask():
         data = request.get_json()
         if not data:
             return jsonify({"error": "No JSON received"}), 400
-        print('rest')
+
         question = data.get("question")
         repo_url = data.get("repoUrl")
-        print(question,repo_url)
+
         if not question or not repo_url:
             return jsonify({"error": "Missing question or repoUrl"}), 400
 
         print(question,repo_url)
-        clone = clone_repo(repo_url)
-        result = query(clone, question)
+        
+        repo_path = clone_repo(repo_url)
+        if repo_path:
+            create_collection(repo_path)
+        result = query(repo_path, question)
         print(jsonify({"answer": result}))
         return jsonify({"answer": result})
 
