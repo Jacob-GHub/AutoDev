@@ -12,6 +12,11 @@ from pathlib import Path
 from hashlib import sha1
 from urllib.parse import urlparse
 import shutil
+from chromadb import Client
+from chromadb.config import Settings
+
+def get_chroma_client(repo_id: str):
+    return chromadb.PersistentClient(path=f"repos/{repo_id}/embeddings")
 
 
 def get_repo_id(github_url: str) -> str:
@@ -36,14 +41,16 @@ def clone_repo(github_url: str, base_dir: Path = Path("repos")) -> Path:
 
     if target_path.exists():
         print(f"Repo already cloned at {target_path}")
-        return target_path
+        print("target path",target_path)
+        return target_path,repo_id
 
     print(f"Cloning {github_url} to {target_path}...")
     target_path.parent.mkdir(parents=True, exist_ok=True)
 
     try:
         subprocess.run(["git", "clone", "--depth", "1", github_url, str(target_path)], check=True)
-        return target_path
+        print("target path",target_path)
+        return target_path,repo_id
 
     except subprocess.CalledProcessError as e:
         print("Error cloning repo:", e)
@@ -52,12 +59,11 @@ def clone_repo(github_url: str, base_dir: Path = Path("repos")) -> Path:
         return None
 
 
-def create_collection(path):
+def create_collection(path,repo_id):
     code_root = Path(path)
 
-    chroma_client = chromadb.PersistentClient(path="chroma_db")
-    collection = chroma_client.get_or_create_collection(
-        name="code_functions",
+    chroma_client = get_chroma_client(repo_id)
+    collection = chroma_client.get_or_create_collection(name="functions",
         metadata={"hnsw:space": "cosine"}
     )
 

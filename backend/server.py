@@ -25,10 +25,11 @@ def ask():
 
         print(question,repo_url)
         
-        repo_path = clone_repo(repo_url)
+        repo_path,repo_id = clone_repo(repo_url)
+        print(repo_path)
         if repo_path:
-            create_collection(repo_path)
-        result = query(repo_path, question)
+            collection = create_collection(repo_path,repo_id)
+        result = query(collection, question)
         print(jsonify({"answer": result}))
         return jsonify({"answer": result})
 
