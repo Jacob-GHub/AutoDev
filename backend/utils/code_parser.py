@@ -1,7 +1,10 @@
 from pathlib import Path
 import ast
 from typing import List, Dict
-from ..graph import CodeNode
+import sys
+from backend.graph import CodeNode
+
+
 
 
 DEF_PREFIXES = ['def ', 'async def ']
@@ -48,25 +51,26 @@ def get_functions(filepath):
                     break
 
 
-def extract_functions(file_path: Path, rel_path: str) -> List[Dict]:
-    with open(file_path, "r", encoding="utf-8") as f:
-        source = f.read()
-    try:
-        tree = ast.parse(source)
-    except SyntaxError:
-        return []
+def extract_functions_from_repo(code_root):
+    """
+    Extract all .py functions from the repository.
+    """
+    code_files = list(code_root.glob('**/*.py'))
 
-    functions = []
+    num_files = len(code_files)
+    print(f'Total number of .py files: {num_files}')
 
-    for node in ast.walk(tree):
-        if isinstance(node, ast.FunctionDef):
-            func_id = f"function:{rel_path}:{node.name}"
-            functions.append(CodeNode(
-                id=func_id,
-                type="function",
-                name=node.name,
-                filePath=rel_path,
-                startLine=node.lineno,
-                endLine=node.end_lineno if hasattr(node, 'end_lineno') else node.lineno
-            ))
-    return functions
+    if num_files == 0:
+        print('Verify python repo exists and code_root is set correctly.')
+        return None
+
+    all_funcs = [
+        func
+        for code_file in code_files
+        for func in get_functions(str(code_file))
+    ]
+
+    num_funcs = len(all_funcs)
+    print(f'Total number of functions extracted: {num_funcs}')
+
+    return all_funcs
