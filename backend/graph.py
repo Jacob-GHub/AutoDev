@@ -1,12 +1,9 @@
 import ast
-import os
 import json
 from pathlib import Path
 from typing import List, Dict
 from dataclasses import dataclass, asdict
-from uuid import uuid4
-
-from dataclasses import dataclass, field
+from graphqe import GraphQueryEngine
 from typing import List
 
 @dataclass
@@ -23,48 +20,64 @@ class FileNode:
     id: str
     name: str
     filePath: str
-    functions: List[FunctionNode] = field(default_factory=list)
+    functions: List[FunctionNode]
 
 @dataclass
 class FolderNode:
     id: str
     name: str
     path: str
-    files: List[FileNode] = field(default_factory=list)
-    folders: List["FolderNode"] = field(default_factory=list)
+    files: List[FileNode]
+    folders: List["FolderNode"]
 
-def extract_functions(file_path: Path, rel_path: str) -> List[Dict]:
-    with open(file_path, "r", encoding="utf-8") as f:
-        source = f.read()
-    try:
-        tree = ast.parse(source)
-    except SyntaxError:
-        return []
-
-    functions = []
+def find_functions(file_path: Path, rel_path: str,tree) -> List[Dict]:
+    functions = {}
 
     for node in ast.walk(tree):
         if isinstance(node, ast.FunctionDef):
             func_id = f"function:{rel_path}:{node.name}"
-            calls = []
-            for func_node in ast.walk(node):
-                if isinstance(func_node,ast.Call):
-                    if isinstance(func_node.func,ast.Name):
-                        calls.append(func_node.func.id)
-                    # elif isinstance(func_node.func,ast.Attribute):
-                    #     calls.append(func_node.func.attr)
-            functions.append(FunctionNode(
-                calls,
+            functions[func_id] = FunctionNode(
+                calls = [],
                 id=func_id,
                 name=node.name,
                 location=rel_path,
                 startLine=node.lineno,
                 endLine=node.end_lineno if hasattr(node, 'end_lineno') else node.lineno,
-            ))
+            )
     return functions
 
+def initialize_functions(file_path,rel_path):
+    with open(file_path, "r", encoding="utf-8") as f:
+        source = f.read()
+    try:
+        tree = ast.parse(source)
+    except SyntaxError:
+        return
+    
+    user_funcs = find_functions(file_path,rel_path,tree)
+    # for func in user_funcs.keys():
+    #     print(func)
+    for node in ast.walk(tree):
+        if isinstance(node, ast.FunctionDef):
+            func_id = f"function:{rel_path}:{node.name}"
+            for func_node in ast.walk(node):
+                if isinstance(func_node,ast.Call):
+                    if isinstance(func_node.func,ast.Name):
+                        call_id = f"function:{rel_path}:{func_node.func.id}"
+                        if call_id in user_funcs:
+                            # print("function: ",node.name, "calls: ", func_node.func.id)
+                            user_funcs[func_id].calls.append((func_node.func.id,call_id))
+                    elif isinstance(func_node.func,ast.Attribute):
+                        call_id = f"function:{rel_path}:{func_node.func.attr}"
+                        if call_id in user_funcs:
+                            # print("function: ",node.name, "calls: ", func_node.func.attr)
+                            user_funcs[func_id].calls.append((func_node.func.attr,call_id))
+    # print(user_funcs)
+    return user_funcs
+
+
 def build_graph(repo_root: Path) -> Dict:
-    fileNodes: List[FileNode] = []
+    fileNodes= []
 
     for file_path in repo_root.rglob("*.py"):
         rel_path = str(file_path.relative_to(repo_root))
@@ -80,13 +93,13 @@ def build_graph(repo_root: Path) -> Dict:
         fileNodes.append(file_node)
 
         # Function nodes
-        function_nodes = extract_functions(file_path, rel_path)
-        file_node.functions.extend(function_nodes)
-
+        function_nodes = initialize_functions(file_path, rel_path)
+        for func_node in function_nodes.values():
+            file_node.functions.append(func_node)
         # Edges: function -> file
 
     return {
-        "filenodes": [asdict(n) for n in fileNodes],
+        "filenodes": [asdict(n) for n in fileNodes]
     }
 
 def save_graph(repo_root: Path, graph: Dict):
@@ -100,6 +113,9 @@ def save_graph(repo_root: Path, graph: Dict):
 repo_id = "Jacob-GHub_AutoDev_9dd2f6d"
 repo_path = Path("repos") / repo_id / "raw"
 graph = build_graph(repo_path)
-# print(graph)
 save_graph(Path("repos") / repo_id, graph)
+engine = GraphQueryEngine(graph)
+print(engine.get_called_functions("function:backend/query.py:query"))
+print(engine.get_calling_functions("function:backend/query.py:query"))
+
 

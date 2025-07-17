@@ -2,18 +2,14 @@ from pathlib import Path
 from utils.utils import get_embedding
 from utils.code_parser import extract_functions_from_repo
 import chromadb
-from tempfile import mkdtemp
 import subprocess
 from pathlib import Path
 import shutil
-import os
 import subprocess
 from pathlib import Path
 from hashlib import sha1
 from urllib.parse import urlparse
 import shutil
-from chromadb import Client
-from chromadb.config import Settings
 
 def get_chroma_client(repo_id: str):
     return chromadb.PersistentClient(path=f"repos/{repo_id}/embeddings")

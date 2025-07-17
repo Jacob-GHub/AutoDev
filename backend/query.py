@@ -1,5 +1,22 @@
 from utils.utils import get_embedding
 from chroma import create_collection
+import re
+
+def handleQuestion(query_msg):
+    #hard coded for now, definitely subject to change
+    func_name = func_name_extractor(query_msg)
+    # if "where is" in query_msg:
+    #     #simple embedding logic
+    # elif "what does" in query_msg:
+    #     # maybe find function using embeddings and then send func/prompt to ai
+    # elif "what calls" in query_msg:
+    #     # simple graphqe function use
+    # elif "repo do" in query_msg:
+    #     # readme detection/ main functions/file detections
+
+def func_name_extractor(question):
+    match = re.search(r"(?:function\s+)?([a-zA-Z_][a-zA-Z0-9_]*)\s*\(\)?", question)
+    return match.group(1) if match else None
 
 def query(collection, query_msg):
     res = search_functions(collection, query_msg, n=3)
