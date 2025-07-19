@@ -2,7 +2,6 @@ from pathlib import Path
 import ast
 from typing import List, Dict
 import sys
-from backend.graph import CodeNode
 
 
 

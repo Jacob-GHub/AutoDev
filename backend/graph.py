@@ -108,14 +108,15 @@ def save_graph(repo_root: Path, graph: Dict):
         json.dump(graph, f, indent=2)
     print(f"Saved graph to {graph_path}")
 
+
 # Example usage:
 # if __name__ == "__main__":
-repo_id = "Jacob-GHub_AutoDev_9dd2f6d"
-repo_path = Path("repos") / repo_id / "raw"
-graph = build_graph(repo_path)
-save_graph(Path("repos") / repo_id, graph)
-engine = GraphQueryEngine(graph)
-print(engine.get_called_functions("function:backend/query.py:query"))
-print(engine.get_calling_functions("function:backend/query.py:query"))
+# repo_id = "Jacob-GHub_AutoDev_9dd2f6d"
+# repo_path = Path("repos") / repo_id / "raw"
+# graph = build_graph(repo_path)
+# save_graph(Path("repos") / repo_id, graph)
+# engine = GraphQueryEngine(graph)
+# print(engine.get_called_functions("function:backend/query.py:query"))
+# print(engine.get_calling_functions("function:backend/query.py:query"))
 
 

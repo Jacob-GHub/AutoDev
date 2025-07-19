@@ -3,9 +3,10 @@
 # import shutil
 from flask import Flask, request, jsonify
 from flask_cors import CORS  
-
+import json
+import sys
 from chroma import create_collection,clone_repo
-from query import query
+from query import handleQuestion
 
 app = Flask(__name__)
 CORS(app)
@@ -29,7 +30,8 @@ def ask():
         print(repo_path)
         if repo_path:
             collection = create_collection(repo_path,repo_id)
-        result = query(collection, question)
+        result = handleQuestion(collection, question,repo_path,repo_id)
+        print(json.dumps({"answer": result}, indent=2), file=sys.stderr, flush=True)
         print(jsonify({"answer": result}))
         return jsonify({"answer": result})
 

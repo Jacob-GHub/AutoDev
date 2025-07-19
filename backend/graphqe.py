@@ -17,7 +17,7 @@ class GraphQueryEngine:
                     if len(call) == 2:
                         self.calls_from[func['id']].append(call[1])
                         self.calls_to[call[1]].append(func['id'])
-        print(self.calls_from,self.calls_to)
+        # print(self.calls_from,self.calls_to)
 
     def get_called_functions(self, function_id: str) -> List[str]:
         #input a given function id and returns a list of functions that it calls
