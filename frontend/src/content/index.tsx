@@ -1,10 +1,12 @@
 import React, { useState } from 'react'
 import ReactDOM from 'react-dom'
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
-import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism'
 
 import '../style/btn.less'
 import '../style/index.css'
+import SemanticLookup from '../components/responses/semantic_lookup/index'
+import RepoSummary from '../components/responses/repo_summary'
+import FunctionSummary from '../components/responses/function_summary'
+import CallGraph from '../components/responses/call_graph'
 
 const root = document.createElement('div')
 root.id = 'crx-root'
@@ -20,6 +22,16 @@ function App() {
   const [loading, setLoading] = useState(false)
   const [answer, setAnswer] = useState([])
   const [submitted, setSubmitted] = useState(false)
+  const [questionType, setQuestionType] = useState('')
+
+  const componentsMap: Record<string, React.ComponentType<{ answer: typeof answer }>> = {
+    semantic_lookup: SemanticLookup,
+    repo_summary: RepoSummary,
+    function_summary: FunctionSummary,
+    call_graph: CallGraph,
+  }
+
+  const SelectedComponent = componentsMap[questionType]
 
   const handleClick = () => {
     setClicked(!clicked)
@@ -57,7 +69,10 @@ function App() {
 
       const data = await response.json()
       console.log(data)
+      // console.log(data.answer.results.results)
       setAnswer(data.answer.results)
+      setQuestionType(data.answer.type)
+      // console.log(answer)
     } catch (err) {
       console.error('error fetching answer:', err)
       setAnswer([])
@@ -94,33 +109,7 @@ function App() {
           </button>
         </form>
       )}
-      {answer.length > 0 && (
-        <div className="mt-4 space-y-4 max-h-[300px] overflow-y-auto">
-          {answer.map((result, idx) => (
-            <div key={idx} className="bg-gray-100 p-3 rounded border border-gray-300 text-sm">
-              <div className="font-medium text-gray-700 mb-1">
-                📄 File: <span className="font-mono">{result.file}</span>
-              </div>
-              <div className="text-xs text-gray-500 mb-2">
-                🔎 Similarity Score: <span className="font-mono">{result.score}</span>
-              </div>
-              <SyntaxHighlighter
-                language="python"
-                style={oneDark}
-                wrapLongLines
-                customStyle={{
-                  borderRadius: '0.5rem',
-                  fontSize: '0.75rem',
-                  padding: '1rem',
-                  background: '#282c34',
-                }}
-              >
-                {result.code}
-              </SyntaxHighlighter>
-            </div>
-          ))}
-        </div>
-      )}
+      {answer.length > 0 && SelectedComponent && <SelectedComponent answer={answer} />}
       {submitted && answer.length === 0 && clicked && !loading && (
         <div className="mt-4 text-red-500 text-sm">❌ No relevant code found.</div>
       )}
