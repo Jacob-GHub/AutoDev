@@ -1,7 +1,9 @@
 import React from 'react'
 
 const RepoSummary = ({ answer }) => {
-  if (!answer || answer.length === 0) return null
+  if (!Array.isArray(answer) || answer.length === 0 || !answer[0].summary) {
+    return <div>No summary data available.</div>
+  }
 
   const { summary, entry_points, key_modules } = answer[0]
 

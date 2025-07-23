@@ -3,6 +3,9 @@ import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism'
 
 const SemanticLookup = ({ answer }) => {
+  if (!Array.isArray(answer) || answer.length === 0) {
+    return <div>No summary data available.</div>
+  }
   return (
     <div className="mt-4 space-y-4 max-h-[300px] overflow-y-auto">
       {answer.map((result, idx) => (

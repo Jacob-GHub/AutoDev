@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import ReactDOM from 'react-dom'
 
 import '../style/btn.less'
@@ -47,6 +47,10 @@ function App() {
     return `https://github.com/${owner}/${repo}.git`
   }
 
+  useEffect(() => {
+    console.log('Updated answer:', answer)
+  }, [answer])
+
   const repoUrl = extractRepoUrl()
 
   const handleSubmit = async (e) => {
@@ -69,10 +73,8 @@ function App() {
 
       const data = await response.json()
       console.log(data)
-      // console.log(data.answer.results.results)
       setAnswer(data.answer.results)
       setQuestionType(data.answer.type)
-      // console.log(answer)
     } catch (err) {
       console.error('error fetching answer:', err)
       setAnswer([])
@@ -109,6 +111,8 @@ function App() {
           </button>
         </form>
       )}
+      {/* {console.log('Rendering answer:', answer)}
+      {console.log('SelectedComponent:', SelectedComponent)} */}
       {answer.length > 0 && SelectedComponent && <SelectedComponent answer={answer} />}
       {submitted && answer.length === 0 && clicked && !loading && (
         <div className="mt-4 text-red-500 text-sm">❌ No relevant code found.</div>

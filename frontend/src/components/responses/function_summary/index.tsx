@@ -3,7 +3,9 @@ import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism'
 
 const FunctionSummary = ({ answer }) => {
-  if (!answer || !Array.isArray(answer)) return null
+  if (!Array.isArray(answer) || answer.length === 0 || !answer[0].summary) {
+    return <div>No summary data available.</div>
+  }
 
   return (
     <div className="mt-4 space-y-4 max-h-[300px] overflow-y-auto">
