@@ -8,7 +8,7 @@ const SemanticLookup = ({ answer }) => {
   }
   return (
     <div className="mt-4 space-y-4 max-h-[300px] overflow-y-auto">
-      {answer.map((result, idx) => (
+      {answer?.map((result, idx) => (
         <div key={idx} className="bg-gray-100 p-3 rounded border border-gray-300 text-sm">
           <div className="font-medium text-gray-700 mb-1">
             📄 File: <span className="font-mono">{result.file}</span>

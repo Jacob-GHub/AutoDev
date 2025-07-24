@@ -25,25 +25,21 @@ def func_name_extractor(question):
     return match.group(1) if match else None
 
 def call_graph(query_msg,func_name,repo_path,repo_id):
+    raw_graph = build_graph(repo_path)
+    graph_engine = GraphQueryEngine(raw_graph)
+    func_id = graph_engine.get_function_by_name(func_name)["id"]
+    callers = graph_engine.get_calling_functions(func_id)
+    save_graph(Path("repos") / repo_id, raw_graph)
+
+
     return {
-  "type": "call_graph",
-  "question": "what calls build_graph?",
-  "results": [
-    {
-      "target": "build_graph",
-      "callers": [
+      "type": "call_graph",
+      "question": query_msg,
+      "results": [
         {
-          "file": "main.py",
-          "function": "main",
-          "line": 22
-        },
-        {
-          "file": "pipeline.py",
-          "function": "run_pipeline",
-          "line": 10
+          "target": func_name,
+          "callers": callers
         }
-      ]
-    }
   ]
 }
 
