@@ -2,26 +2,32 @@ import React from 'react'
 
 const RepoSummary = ({ answer }) => {
   if (!Array.isArray(answer) || answer.length === 0 || !answer[0].summary) {
-    return <div>No summary data available.</div>
+    return <div className="text-sm text-gray-400 italic mt-4">No summary data available.</div>
   }
 
   const { summary, entry_points, key_modules } = answer[0]
 
   return (
-    <div className="mt-4 space-y-4 text-gray-700 text-sm">
-      <div className="bg-gray-100 p-4 rounded border border-gray-300">
-        <div className="font-semibold mb-2 text-gray-700">📦 Repository Summary</div>
-        <p className="mb-2 text-gray-700">{summary}</p>
-        <div className="mb-1 font-medium text-gray-700">🚀 Entry Points:</div>
-        <ul className="list-disc list-inside text-xs text-gray-700 mb-2">
+    <div className="mt-4 space-y-6 overflow-y-auto pr-1">
+      <div className="bg-white/5 border border-white/10 rounded-xl p-4 shadow-md text-sm text-white/90 transition hover:shadow-lg">
+        <div className="font-semibold mb-3">📦 Repository Summary</div>
+        <p className="mb-4 text-white/70">{summary}</p>
+
+        <div className="mb-1 font-medium text-white/90">🚀 Entry Points:</div>
+        <ul className="list-disc list-inside text-xs text-white/70 mb-4">
           {entry_points?.map((file, idx) => (
-            <li key={idx}>{file}</li>
+            <li key={idx} className="font-mono">
+              {file}
+            </li>
           ))}
         </ul>
-        <div className="mb-1 font-medium text-gray-700">📚 Key Modules:</div>
-        <ul className="list-disc list-inside text-xs text-gray-700">
+
+        <div className="mb-1 font-medium text-white/90">📚 Key Modules:</div>
+        <ul className="list-disc list-inside text-xs text-white/70">
           {key_modules?.map((file, idx) => (
-            <li key={idx}>{file}</li>
+            <li key={idx} className="font-mono">
+              {file}
+            </li>
           ))}
         </ul>
       </div>

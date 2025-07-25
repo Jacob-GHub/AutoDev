@@ -2,25 +2,34 @@ import React from 'react'
 
 const CallGraph = ({ answer }) => {
   if (!Array.isArray(answer) || answer.length === 0) {
-    return <div>No summary data available.</div>
+    return <div className="text-sm text-gray-400 italic mt-4">No call graph data available.</div>
   }
+
   return (
-    <div className="mt-4 space-y-4 max-h-[300px] overflow-y-auto">
-      {answer?.map((result, idx) => (
-        <div key={idx} className="bg-gray-100 p-3 rounded border border-gray-300 text-sm">
-          <div className="text-gray-700 font-medium mb-2">
-            🔍 Callers of <span className="font-mono">{result.target}</span>:
+    <div className="mt-4 space-y-6 pr-1">
+      {answer.map((result, idx) => (
+        <div
+          key={idx}
+          className="bg-white/5 border border-white/10 rounded-xl p-4 shadow-md transition hover:shadow-lg"
+        >
+          <div className="text-white/90 font-medium mb-3 text-sm">
+            🔍 Callers of{' '}
+            <span className="font-mono bg-white/10 px-2 py-0.5 rounded text-white">
+              {result.target}
+            </span>
           </div>
-          {result?.callers?.map((caller, i) => (
-            <div
-              key={i}
-              className="ml-2 pl-2 border-l-2 border-blue-400 text-xs text-gray-600 mb-1"
-            >
-              📄 <span className="font-mono text-gray-700">{caller}</span> →{' '}
-              {/* <span className="font-mono text-gray-700">{caller.function}</span> at line{' '}
-              <span className="font-mono text-gray-700">{caller.line}</span> */}
-            </div>
-          ))}
+
+          <div className="space-y-2">
+            {result?.callers?.length > 0 ? (
+              result.callers.map((caller, i) => (
+                <div key={i} className="pl-4 border-l-2 border-blue-500 text-xs text-white/70">
+                  📄 <span className="font-mono text-white">{caller}</span>
+                </div>
+              ))
+            ) : (
+              <div className="text-xs text-gray-400 italic">No callers found.</div>
+            )}
+          </div>
         </div>
       ))}
     </div>
