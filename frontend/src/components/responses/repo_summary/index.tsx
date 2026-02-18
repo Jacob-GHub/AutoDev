@@ -1,7 +1,7 @@
 import React from 'react'
 
 const RepoSummary = ({ answer }) => {
-  if (!Array.isArray(answer) || answer.length === 0 || !answer[0].summary) {
+  if (!answer || !Array.isArray(answer) || answer.length === 0) {
     return <div className="text-sm text-gray-400 italic mt-4">No summary data available.</div>
   }
 

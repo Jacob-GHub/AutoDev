@@ -4,7 +4,7 @@ import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism'
 import { toast } from 'react-hot-toast'
 
 const SemanticLookup = ({ answer }) => {
-  if (!Array.isArray(answer) || answer.length === 0) {
+  if (!answer || !Array.isArray(answer) || answer.length === 0) {
     return <div className="text-sm text-gray-400 italic">No summary data available.</div>
   }
 

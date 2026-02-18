@@ -15,9 +15,10 @@ const App = () => {
   const [showModal, setShowModal] = useState(false)
   const [inputValue, setInputValue] = useState('')
   const [loading, setLoading] = useState(false)
-  const [answer, setAnswer] = useState([])
+  const [answer, setAnswer] = useState(null)
   const [submitted, setSubmitted] = useState(false)
   const [questionType, setQuestionType] = useState('semantic_lookup')
+  const [validAnswer, setValidAnswer] = useState(false)
   const [open, setOpen] = useState(false)
   const [error, setError] = useState(null)
   const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches
@@ -68,7 +69,7 @@ const App = () => {
 
       const data = await response.json()
       console.log(data)
-      setAnswer(data.answer.results)
+      setAnswer(data.answer)
       console.log(answer)
       setQuestionType(data.answer.type)
       console.log(questionType)
@@ -76,11 +77,15 @@ const App = () => {
     } catch (err) {
       setError('Something went wrong. Please try again.')
       console.error('Error:', err)
-      setAnswer([])
+      setAnswer(null)
     }
 
     setLoading(false)
     setSubmitted(true)
+  }
+
+  const handleAnswer = async (e) => {
+    e.preventDefault()
   }
 
   return (
@@ -140,12 +145,23 @@ const App = () => {
             </button>
           </form>
           {error && <p className="text-red-400 mt-4 text-sm">{error}</p>}
-          <div className="mt-4 flex-1 overflow-y-auto">
-            {answer.length > 0 && SelectedComponent && <SelectedComponent answer={answer} />}
-            {submitted && answer.length === 0 && !loading && (
-              <p className="mt-4 text-red-300 text-sm">❌ No relevant code found.</p>
-            )}
-          </div>
+          {answer && (
+            <div>
+              {/* LLM natural language answer */}
+              <div className="mb-4 p-3 bg-white/10 rounded-lg text-sm text-white leading-relaxed">
+                {answer.answer}
+              </div>
+              {/* Raw code results */}
+              {SelectedComponent && answer.raw_context?.results?.length > 0 && (
+                <SelectedComponent answer={answer.raw_context.results} />
+              )}
+              <div>Did this answer your question?</div>
+              ...
+            </div>
+          )}
+          {submitted && !answer && !loading && (
+            <p className="mt-4 text-red-300 text-sm">❌ No relevant code found.</p>
+          )}
         </div>
       </div>
     </>

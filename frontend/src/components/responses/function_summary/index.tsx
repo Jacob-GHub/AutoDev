@@ -3,7 +3,7 @@ import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism'
 
 const FunctionSummary = ({ answer }) => {
-  if (!Array.isArray(answer) || answer.length === 0 || !answer[0].summary) {
+  if (!answer || !Array.isArray(answer) || answer.length === 0) {
     return <div className="text-sm text-gray-400 italic">No summary data available.</div>
   }
 
