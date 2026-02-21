@@ -2,7 +2,7 @@ from utils.utils import get_embedding
 from chroma import create_collection
 import re
 from pathlib import Path
-from graph import build_graph, save_graph
+from graph import save_graph, get_or_build_graph
 from graphqe import GraphQueryEngine
 from openai import OpenAI
 import json
@@ -70,13 +70,17 @@ def handleQuestion(collection, query_msg, repo_path, repo_id):
     func_name = intent_data.get("function_name")
 
     if intent == "semantic_lookup":
-        context = semantic_lookup(collection, func_name or query_msg, query_msg)
+        if func_name:
+            context = find_function_location(repo_path, repo_id, func_name)
+        else:
+            # no specific function mentioned, fall back to embeddings
+            context = semantic_lookup(collection, query_msg, query_msg)
     elif intent == "function_summary":
-        context = function_summary(query_msg, func_name)
+        context = function_summary(query_msg, func_name, repo_path, repo_id)
     elif intent == "call_graph":
         context = call_graph(query_msg, func_name, repo_path, repo_id)
     elif intent == "repo_summary":
-        context = repo_summary(query_msg, func_name)
+        context = repo_summary(query_msg, repo_path, repo_id)
     else:
         # open_ended: semantic search on the full query, not just a function name
         context = semantic_lookup(collection, query_msg, query_msg)
@@ -85,7 +89,7 @@ def handleQuestion(collection, query_msg, repo_path, repo_id):
 
 
 def call_graph(query_msg, func_name, repo_path, repo_id):
-    raw_graph = build_graph(repo_path)
+    raw_graph = get_or_build_graph(repo_path, repo_id)
     graph_engine = GraphQueryEngine(raw_graph)
     func_id = graph_engine.get_function_by_name(func_name)["id"]
     callers = graph_engine.get_calling_functions(func_id)
@@ -98,38 +102,71 @@ def call_graph(query_msg, func_name, repo_path, repo_id):
     }
 
 
-def repo_summary(query_msg, func_name):
+def repo_summary(query_msg, repo_path, repo_id):
+    repo_root = Path(repo_path)
+
+    # Try to read README
+    readme_content = None
+    for readme_name in ["README.md", "README.txt", "README.rst", "README"]:
+        readme_path = repo_root / readme_name
+        if readme_path.exists():
+            with open(readme_path, "r", encoding="utf-8") as f:
+                readme_content = f.read()[
+                    :3000
+                ]  # cap it so we don't blow the context window
+            break
+
+    # Get top level structure
+    structure = []
+    for item in sorted(repo_root.iterdir()):
+        if item.name.startswith("."):
+            continue
+        structure.append(
+            {"name": item.name, "type": "directory" if item.is_dir() else "file"}
+        )
+
     return {
         "type": "repo_summary",
-        "question": "what does the repo do?",
+        "question": query_msg,
         "results": [
-            {
-                "summary": "This repo analyzes codebases, builds call graphs, and provides insights using NLP and embeddings.",
-                "entry_points": ["main.py", "cli.py"],
-                "key_modules": ["graph.py", "parser.py"],
-            }
+            {"readme": readme_content or "No README found.", "structure": structure}
         ],
     }
 
 
-def function_summary(query_msg, func_name):
+def function_summary(query_msg, func_name, repo_path, repo_id):
+    raw_graph = get_or_build_graph(repo_path, repo_id)
+    engine = GraphQueryEngine(raw_graph)
+    func = engine.get_function_by_name(func_name)
+
+    if not func:
+        return {"type": "function_summary", "question": query_msg, "results": []}
+
+    file_node = engine.get_file_of_function(func["id"])
+    file_path = Path(repo_path) / func["location"]
+
+    # Read the actual source lines
+    with open(file_path, "r", encoding="utf-8") as f:
+        lines = f.readlines()
+
+    code = "".join(lines[func["startLine"] - 1 : func["endLine"]])
+
     return {
         "type": "function_summary",
-        "question": "what does build_graph do?",
+        "question": query_msg,
         "results": [
             {
-                "file": "src/graph.py",
-                "function": "build_graph",
-                "summary": "This function constructs a graph using nodes from parsed files.",
-                "code": "def build_graph(...)",
-                "line_range": [12, 41],
+                "file": file_node["filePath"],
+                "function": func["name"],
+                "code": code,
+                "line_range": [func["startLine"], func["endLine"]],
             }
         ],
     }
 
 
 def find_function_location(repo_path, repo_id, func_name):
-    raw_graph = build_graph(repo_path)
+    raw_graph = get_or_build_graph(repo_path, repo_id)
     engine = GraphQueryEngine(raw_graph)
     func = engine.get_function_by_name(func_name)
     if not func:
@@ -170,15 +207,6 @@ def semantic_lookup(collection, func_name, question):
         )
 
     return {"type": "semantic_lookup", "question": question, "results": results}
-
-
-# def print_collection(collection):
-#     results = collection.get(include=["documents", "metadatas", "embeddings"])
-#     for uid, doc, meta in zip(results["ids"], results["documents"], results["metadatas"]):
-#         print(f"🆔 ID: {uid}")
-#         print(f"📄 Code:\n{doc}")
-#         print(f"📝 Metadata: {meta}")
-#         print("-" * 60)
 
 
 def search_functions(collection, code_query, n=3):

@@ -2,6 +2,7 @@ from pathlib import Path
 from utils.utils import get_embedding
 from utils.code_parser import extract_functions_from_repo
 import chromadb
+from graph import get_current_commit
 import subprocess
 from pathlib import Path
 import shutil
@@ -10,6 +11,7 @@ from pathlib import Path
 from hashlib import sha1
 from urllib.parse import urlparse
 import shutil
+
 
 def get_chroma_client(repo_id: str):
     return chromadb.PersistentClient(path=f"repos/{repo_id}/embeddings")
@@ -27,6 +29,7 @@ def get_repo_id(github_url: str) -> str:
         return f"{owner}_{repo}_{repo_hash}"
     raise ValueError("Invalid GitHub URL")
 
+
 def clone_repo(github_url: str, base_dir: Path = Path("repos")) -> Path:
     """
     Clones a GitHub repo into a persistent folder based on repo ID.
@@ -37,16 +40,18 @@ def clone_repo(github_url: str, base_dir: Path = Path("repos")) -> Path:
 
     if target_path.exists():
         print(f"Repo already cloned at {target_path}")
-        print("target path",target_path)
-        return target_path,repo_id
+        print("target path", target_path)
+        return target_path, repo_id
 
     print(f"Cloning {github_url} to {target_path}...")
     target_path.parent.mkdir(parents=True, exist_ok=True)
 
     try:
-        subprocess.run(["git", "clone", "--depth", "1", github_url, str(target_path)], check=True)
-        print("target path",target_path)
-        return target_path,repo_id
+        subprocess.run(
+            ["git", "clone", "--depth", "1", github_url, str(target_path)], check=True
+        )
+        print("target path", target_path)
+        return target_path, repo_id
 
     except subprocess.CalledProcessError as e:
         print("Error cloning repo:", e)
@@ -55,12 +60,27 @@ def clone_repo(github_url: str, base_dir: Path = Path("repos")) -> Path:
         return None
 
 
-def create_collection(path,repo_id):
+def create_collection(path, repo_id):
     code_root = Path(path)
+    commit_path = Path("repos") / repo_id / "commit.txt"
+    embeddings_path = Path("repos") / repo_id / "embeddings"
+
+    # Check if embeddings are stale
+    current_commit = get_current_commit(code_root)
+    if commit_path.exists() and commit_path.read_text().strip() == current_commit:
+        # Embeddings are fresh, just return existing collection
+        chroma_client = get_chroma_client(repo_id)
+        return chroma_client.get_or_create_collection(
+            name="functions", metadata={"hnsw:space": "cosine"}
+        )
+
+    # Stale or first time — wipe and rebuild
+    if embeddings_path.exists():
+        shutil.rmtree(embeddings_path)
 
     chroma_client = get_chroma_client(repo_id)
-    collection = chroma_client.get_or_create_collection(name="functions",
-        metadata={"hnsw:space": "cosine"}
+    collection = chroma_client.get_or_create_collection(
+        name="functions", metadata={"hnsw:space": "cosine"}
     )
 
     # Extract all functions from the repository
@@ -80,32 +100,34 @@ def create_collection(path,repo_id):
     new_metadatas = []
 
     for idx, func in enumerate(all_funcs):
-        filepath = Path(func['filepath']).relative_to(code_root)
+        filepath = Path(func["filepath"]).relative_to(code_root)
         uid = f"{filepath}_{idx}"  # Create UID first
 
         if uid in existing_ids:
             continue  # Skip if already added
 
-        code = func['code']
-        print(func['function_name'])
+        code = func["code"]
+        print(func["function_name"])
 
         # Defer embedding until we know it's new
-        embedding = get_embedding(code, model='text-embedding-3-small')
+        embedding = get_embedding(code, model="text-embedding-3-small")
 
         new_ids.append(uid)
         new_codes.append(code)
         new_embeddings.append(embedding)
-        new_metadatas.append({
-            "filepath": str(filepath),
-            "function_name": func['function_name'],
-        })
+        new_metadatas.append(
+            {
+                "filepath": str(filepath),
+                "function_name": func["function_name"],
+            }
+        )
 
     if new_ids:
         collection.add(
             ids=new_ids,
             documents=new_codes,
             embeddings=new_embeddings,
-            metadatas=new_metadatas
+            metadatas=new_metadatas,
         )
-
+    commit_path.write_text(current_commit)
     return collection
