@@ -33,16 +33,21 @@ If context is insufficient, say so honestly.
 """
 
 
-def generate_answer(query_msg: str, context: dict) -> dict:
+def generate_answer(query_msg: str, context: dict, history: list = []) -> dict:
+    messages = [{"role": "system", "content": ANSWER_PROMPT}]
+    
+    # Inject prior conversation
+    messages.extend(history)
+    
+    # Add current question with context
+    messages.append({
+        "role": "user",
+        "content": f"Question: {query_msg}\n\nContext:\n{json.dumps(context, indent=2)}"
+    })
+
     response = client.chat.completions.create(
         model="gpt-4o",
-        messages=[
-            {"role": "system", "content": ANSWER_PROMPT},
-            {
-                "role": "user",
-                "content": f"Question: {query_msg}\n\nContext:\n{json.dumps(context, indent=2)}",
-            },
-        ],
+        messages=messages
     )
     return {
         "type": context.get("type", "unknown"),
@@ -64,7 +69,7 @@ def classify_intent(query_msg: str) -> dict:
     return json.loads(response.choices[0].message.content)
 
 
-def handleQuestion(collection, query_msg, repo_path, repo_id):
+def handleQuestion(collection, query_msg, repo_path, repo_id,history = []):
     intent_data = classify_intent(query_msg)
     intent = intent_data.get("intent")
     func_name = intent_data.get("function_name")
@@ -85,7 +90,7 @@ def handleQuestion(collection, query_msg, repo_path, repo_id):
         # open_ended: semantic search on the full query, not just a function name
         context = semantic_lookup(collection, query_msg, query_msg)
 
-    return generate_answer(query_msg, context)
+    return generate_answer(query_msg, context, history)
 
 
 def call_graph(query_msg, func_name, repo_path, repo_id):

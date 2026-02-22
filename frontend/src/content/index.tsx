@@ -21,6 +21,7 @@ const App = () => {
   const [validAnswer, setValidAnswer] = useState(false)
   const [open, setOpen] = useState(false)
   const [error, setError] = useState(null)
+  const [history, setHistory] = useState([])
   const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches
 
   const componentsMap = {
@@ -64,6 +65,7 @@ const App = () => {
         body: JSON.stringify({
           question: inputValue,
           repoUrl: extractRepoUrl(),
+          history: history,
         }),
       })
 
@@ -71,6 +73,11 @@ const App = () => {
       console.log(data)
       setAnswer(data.answer)
       console.log(answer)
+      setHistory((prev) => [
+        ...prev,
+        { role: 'user', content: inputValue },
+        { role: 'assistant', content: data.answer.answer },
+      ])
       setQuestionType(data.answer.type)
       console.log(questionType)
       setError(null)

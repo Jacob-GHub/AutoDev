@@ -19,6 +19,8 @@ def ask():
             return jsonify({"error": "No JSON received"}), 400
 
         question = data.get("question")
+        history = data.get("history", [])
+        history = history[-20:]  # cap to last 10 exchanges
         repo_url = data.get("repoUrl")
 
         if not question or not repo_url:
@@ -30,7 +32,7 @@ def ask():
         print(repo_path)
         if repo_path:
             collection = create_collection(repo_path,repo_id)
-        result = handleQuestion(collection, question,repo_path,repo_id)
+        result = handleQuestion(collection, question, repo_path, repo_id, history)
         print(json.dumps({"answer": result}, indent=2), file=sys.stderr, flush=True)
         print(jsonify({"answer": result}))
         return jsonify({"answer": result})
