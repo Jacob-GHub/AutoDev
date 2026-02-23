@@ -6,6 +6,8 @@ import SemanticLookup from '../components/responses/semantic_lookup/index'
 import RepoSummary from '../components/responses/repo_summary'
 import FunctionSummary from '../components/responses/function_summary'
 import CallGraph from '../components/responses/call_graph'
+import { createRoot } from 'react-dom/client'
+import AnswerDisplay from '../components/responses/AnswerDisplay'
 
 const root = document.createElement('div')
 root.id = 'crx-root'
@@ -155,9 +157,7 @@ const App = () => {
           {answer && (
             <div>
               {/* LLM natural language answer */}
-              <div className="mb-4 p-3 bg-white/10 rounded-lg text-sm text-white leading-relaxed">
-                {answer.answer}
-              </div>
+              <AnswerDisplay answer={answer.answer} />
               {/* Raw code results */}
               {SelectedComponent && answer.raw_context?.results?.length > 0 && (
                 <SelectedComponent answer={answer.raw_context.results} />
@@ -174,4 +174,9 @@ const App = () => {
     </>
   )
 }
-ReactDOM.render(<App />, document.getElementById('crx-root'))
+const container = document.getElementById('crx-root')
+
+if (container) {
+  const root = createRoot(container)
+  root.render(<App />)
+}

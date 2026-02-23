@@ -136,7 +136,7 @@ module.exports = {
     new WebpackBar(),
   ],
   resolve: {
-    extensions: ['.tsx', '.ts', '.js', 'less'],
+    extensions: ['.tsx', '.ts', '.js', '.less'],
   },
   optimization: {
     minimize: !isDev,

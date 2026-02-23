@@ -1,7 +1,8 @@
 import React, { useCallback } from 'react'
-import ReactDOM from 'react-dom'
+import { createRoot } from 'react-dom/client'
 import '../style/popup.less'
 
+const root = createRoot(document.getElementById('root')!)
 function App() {
   // get static files by chrome.runtime.getURL
   const logo = chrome.runtime.getURL('assets/create-crx-app.png')
@@ -25,9 +26,4 @@ function App() {
   )
 }
 
-ReactDOM.render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>,
-  document.getElementById('root'),
-)
+root.render(<App />)
