@@ -75,11 +75,6 @@ You can change the embedding model in `config.py`:
 EMBEDDING_MODEL = "microsoft/codebert-base"  # or "sentence-transformers/code-search-net"
 ```
 
-You can also change:
-- Chroma collection name
-- Code chunk size limits
-- File types to scan (`.py`, `.js`, etc.)
-
 ---
 
 ## 📁 Project Structure
@@ -97,28 +92,6 @@ autodev/
 
 ---
 
-## 📌 Goals
-
-- [x] Extract functions from a repo
-- [x] Embed code using openAI
-- [x] Store embeddings in Chroma
-- [x] Natural language query → nearest code match
-- [ ] Add web UI (Flask or Streamlit)
-- [ ] Support multiple languages (JavaScript, Go, etc.)
-- [ ] Ranking results based on usage frequency
-
----
-
-## 🙌 Contributing
-
-Pull requests welcome! If you have ideas for:
-- More intelligent chunking
-- Better ranking/scoring
-- UI/UX for code search
-
-feel free to open an issue or PR.
-
----
 
 ## 🧠 Inspiration
 
