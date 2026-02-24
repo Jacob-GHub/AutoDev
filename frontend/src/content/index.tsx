@@ -8,6 +8,7 @@ import FunctionSummary from '../components/responses/function_summary'
 import CallGraph from '../components/responses/call_graph'
 import { createRoot } from 'react-dom/client'
 import AnswerDisplay from '../components/responses/AnswerDisplay'
+import ToolCallTrace from '../components/responses/ToolCallTrace'
 
 const root = document.createElement('div')
 root.id = 'crx-root'
@@ -145,7 +146,10 @@ const App = () => {
         <div className="flex-1 overflow-y-auto p-6 space-y-4">
           {answerList.map((ans, idx) => (
             <div key={idx}>
-              <p className="text-xs text-white/50 mb-1">{ans.question}</p>
+              <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', marginBottom: '4px' }}>
+                {ans.question}
+              </p>
+              <ToolCallTrace toolCalls={ans.tool_calls} />
               <AnswerDisplay answer={ans.answer} />
             </div>
           ))}

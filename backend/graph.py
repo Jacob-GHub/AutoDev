@@ -58,57 +58,63 @@ def initialize_functions(file_path, rel_path):
     try:
         tree = ast.parse(source)
     except SyntaxError:
-        return
+        return {}
 
     user_funcs = find_functions(file_path, rel_path, tree)
-    # for func in user_funcs.keys():
-    #     print(func)
+
     for node in ast.walk(tree):
         if isinstance(node, ast.FunctionDef):
             func_id = f"function:{rel_path}:{node.name}"
+            if func_id not in user_funcs:
+                continue
             for func_node in ast.walk(node):
                 if isinstance(func_node, ast.Call):
                     if isinstance(func_node.func, ast.Name):
-                        call_id = f"function:{rel_path}:{func_node.func.id}"
-                        if call_id in user_funcs:
-                            # print("function: ",node.name, "calls: ", func_node.func.id)
-                            user_funcs[func_id].calls.append(
-                                (func_node.func.id, call_id)
-                            )
+                        call_name = func_node.func.id
+                        # Store all calls, not just same-file ones
+                        user_funcs[func_id].calls.append((call_name, None))
                     elif isinstance(func_node.func, ast.Attribute):
-                        call_id = f"function:{rel_path}:{func_node.func.attr}"
-                        if call_id in user_funcs:
-                            # print("function: ",node.name, "calls: ", func_node.func.attr)
-                            user_funcs[func_id].calls.append(
-                                (func_node.func.attr, call_id)
-                            )
-    # print(user_funcs)
+                        call_name = func_node.func.attr
+                        user_funcs[func_id].calls.append((call_name, None))
+
     return user_funcs
 
 
 def build_graph(repo_root: Path) -> Dict:
     fileNodes = []
+    all_funcs = {}  # global map of function name -> function_id across all files
 
+    # Pass 1: collect all functions across all files
     for file_path in repo_root.rglob("*.py"):
         rel_path = str(file_path.relative_to(repo_root))
-
-        # File node
         file_node = FileNode(
             id=f"file:{rel_path}",
             name=file_path.name,
             filePath=rel_path,
             functions=[],
         )
-
         fileNodes.append(file_node)
 
-        # Function nodes
         function_nodes = initialize_functions(file_path, rel_path)
-        for func_node in function_nodes.values():
+        if not function_nodes:
+            continue
+        for func_id, func_node in function_nodes.items():
             file_node.functions.append(func_node)
-        # Edges: function -> file
+            # Register by name globally — last definition wins if there are duplicates
+            all_funcs[func_node.name] = func_id
+            all_funcs[func_id] = func_id  # also register by full id
 
-    return {"filenodes": [asdict(n) for n in fileNodes]}
+    # Pass 2: resolve calls using global function map
+    for file_node in fileNodes:
+        for func in file_node.functions:
+            resolved_calls = []
+            for call_name, _ in func.calls:
+                if call_name in all_funcs:
+                    resolved_calls.append((call_name, all_funcs[call_name]))
+                # drop external library calls
+            func.calls = resolved_calls
+
+        return {"filenodes": [asdict(n) for n in fileNodes]}
 
 
 def get_current_commit(repo_path: Path) -> str:
