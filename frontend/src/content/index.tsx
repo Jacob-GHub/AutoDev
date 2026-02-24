@@ -18,6 +18,7 @@ const App = () => {
   const [inputValue, setInputValue] = useState('')
   const [loading, setLoading] = useState(false)
   const [answer, setAnswer] = useState(null)
+  const [answerList, setAnswerList] = useState([])
   const [submitted, setSubmitted] = useState(false)
   const [questionType, setQuestionType] = useState('semantic_lookup')
   const [validAnswer, setValidAnswer] = useState(false)
@@ -74,6 +75,7 @@ const App = () => {
       const data = await response.json()
       console.log(data)
       setAnswer(data.answer)
+      setAnswerList((prev) => [...prev, data.answer])
       console.log(answer)
       setHistory((prev) => [
         ...prev,
@@ -100,22 +102,36 @@ const App = () => {
   return (
     <>
       {/* Floating Button */}
-      <button
-        onClick={() => setOpen(!open)}
-        className="fixed bottom-10 right-10 z-[9999] bg-neutral-100 text-black hover:bg-neutral-200
- px-4 py-3 rounded-full shadow-lg backdrop-blur hover:bg-white transition-colors"
-      >
-        {open ? 'Close' : '💬 Ask Repo Question'}
-      </button>
+      {!open && (
+        <button
+          onClick={() => setOpen(!open)}
+          className="fixed bottom-10 right-10 z-[9999] bg-neutral-100 text-black hover:bg-neutral-200 px-4 py-3 rounded-full shadow-lg backdrop-blur hover:bg-white transition-colors"
+        >
+          Ask Repo Question
+        </button>
+      )}
 
+      {/* Sidebar */}
       <div
-        className={`fixed top-0 right-0 h-full w-[400px] backdrop-blur-md bg-black bg-opacity-50 text-white shadow-2xl border-l border-white/10 z-[9998] transition-transform duration-300 ease-in-out ${
+        className={`fixed top-0 right-0 h-full w-[400px] backdrop-blur-md bg-black bg-opacity-50 text-white shadow-2xl border-l border-white/10 z-[9998] transition-transform duration-300 ease-in-out flex flex-col ${
           open ? 'translate-x-0' : 'translate-x-full'
         }`}
       >
-        <div className="p-6 h-full flex flex-col overflow-y-auto">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-semibold">Ask a question</h2>
+        {/* Header */}
+        <div className="flex justify-between items-center p-6 pb-4 border-b border-white/10">
+          <h2 className="text-lg font-semibold">Ask a question</h2>
+          <div className="flex gap-2 items-center">
+            {answerList.length > 0 && (
+              <button
+                onClick={() => {
+                  setAnswerList([])
+                  setHistory([])
+                }}
+                className="text-white/50 text-xs hover:text-white"
+              >
+                Clear
+              </button>
+            )}
             <button
               onClick={() => setOpen(false)}
               className="text-white text-xl hover:text-red-400"
@@ -123,52 +139,51 @@ const App = () => {
               ✖
             </button>
           </div>
+        </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Scrollable answers */}
+        <div className="flex-1 overflow-y-auto p-6 space-y-4">
+          {answerList.map((ans, idx) => (
+            <div key={idx}>
+              <p className="text-xs text-white/50 mb-1">{ans.question}</p>
+              <AnswerDisplay answer={ans.answer} />
+            </div>
+          ))}
+          {loading && (
+            <div className="animate-pulse space-y-3">
+              <div className="h-4 bg-gray-600 rounded w-3/4" />
+              <div className="h-4 bg-gray-600 rounded w-full" />
+              <div className="h-4 bg-gray-600 rounded w-1/2" />
+            </div>
+          )}
+          {submitted && !answer && !loading && (
+            <p className="text-red-300 text-sm">No relevant code found.</p>
+          )}
+        </div>
+
+        {/* Sticky input at bottom */}
+        <div className="p-4 border-t border-white/10">
+          {error && <p className="text-red-400 mb-2 text-sm">{error}</p>}
+          <form onSubmit={handleSubmit} className="flex gap-2">
             <input
               type="text"
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
-              className="w-full bg-black bg-opacity-30 border border-white/20 rounded px-3 py-2 text-white placeholder-gray-300"
+              className="flex-1 bg-black bg-opacity-30 border border-white/20 rounded px-3 py-2 text-white placeholder-gray-300"
               placeholder="Ask a question..."
             />
-
             <button
               type="submit"
               disabled={loading}
-              className={`w-full py-2 rounded font-semibold ${
+              className={`px-4 py-2 rounded font-semibold ${
                 loading
                   ? 'bg-gray-500 cursor-not-allowed'
                   : 'bg-neutral-100 text-black hover:bg-neutral-200'
               }`}
             >
-              {loading ? (
-                <div className="mt-4 animate-pulse space-y-3">
-                  <div className="h-4 bg-gray-600 rounded w-3/4" />
-                  <div className="h-4 bg-gray-600 rounded w-full" />
-                  <div className="h-4 bg-gray-600 rounded w-1/2" />
-                </div>
-              ) : (
-                'Ask'
-              )}
+              {loading ? '...' : 'Ask'}
             </button>
           </form>
-          {error && <p className="text-red-400 mt-4 text-sm">{error}</p>}
-          {answer && (
-            <div>
-              {/* LLM natural language answer */}
-              <AnswerDisplay answer={answer.answer} />
-              {/* Raw code results */}
-              {SelectedComponent && answer.raw_context?.results?.length > 0 && (
-                <SelectedComponent answer={answer.raw_context.results} />
-              )}
-              <div>Did this answer your question?</div>
-              ...
-            </div>
-          )}
-          {submitted && !answer && !loading && (
-            <p className="mt-4 text-red-300 text-sm">❌ No relevant code found.</p>
-          )}
         </div>
       </div>
     </>

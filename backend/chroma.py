@@ -74,7 +74,7 @@ def create_collection(path, repo_id):
             name="functions", metadata={"hnsw:space": "cosine"}
         )
 
-    # Stale or first time — wipe and rebuild
+    # Stale or first time -> wipe and rebuild
     if embeddings_path.exists():
         shutil.rmtree(embeddings_path)
 
@@ -88,7 +88,7 @@ def create_collection(path, repo_id):
 
     if not all_funcs:
         print("No functions found. Skipping collection creation.")
-        return collection  # or return None if that makes more sense
+        return None  
 
     # Get existing IDs from the DB
     existing = collection.get(include=["metadatas"])

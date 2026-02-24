@@ -70,6 +70,14 @@ def classify_intent(query_msg: str) -> dict:
 
 
 def handleQuestion(collection, query_msg, repo_path, repo_id,history = []):
+    if collection is None:
+        return {
+            "type": "error",
+            "question": query_msg,
+            "answer": "No indexable code found in this repository. Currently only Python repos are supported.",
+            "raw_context": {}
+        }
+    
     intent_data = classify_intent(query_msg)
     intent = intent_data.get("intent")
     func_name = intent_data.get("function_name")
@@ -94,11 +102,25 @@ def handleQuestion(collection, query_msg, repo_path, repo_id,history = []):
 
 
 def call_graph(query_msg, func_name, repo_path, repo_id):
+    if not func_name:
+        return {
+            "type": "call_graph",
+            "question": query_msg,
+            "results": [{"target": "unknown", "callers": []}]
+        }
+    
     raw_graph = get_or_build_graph(repo_path, repo_id)
     graph_engine = GraphQueryEngine(raw_graph)
-    func_id = graph_engine.get_function_by_name(func_name)["id"]
-    callers = graph_engine.get_calling_functions(func_id)
-    save_graph(Path("repos") / repo_id, raw_graph)
+    func = graph_engine.get_function_by_name(func_name)
+    
+    if not func:
+        return {
+            "type": "call_graph",
+            "question": query_msg,
+            "results": [{"target": func_name, "callers": []}]
+        }
+    
+    callers = graph_engine.get_calling_functions(func["id"])
 
     return {
         "type": "call_graph",
@@ -193,8 +215,11 @@ def find_function_location(repo_path, repo_id, func_name):
 
 def semantic_lookup(collection, func_name, question):
     res = search_functions(collection, func_name, n=3)
-
     documents = res.get("documents", [[]])[0]
+
+    if not documents:
+        return {"type": "semantic_lookup", "question": question, "results": []}
+    
     metadatas = res.get("metadatas", [[]])[0]
     distances = res.get("distances", [[]])[0]
 
