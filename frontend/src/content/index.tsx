@@ -26,6 +26,7 @@ const App = () => {
   const [open, setOpen] = useState(false)
   const [error, setError] = useState(null)
   const [history, setHistory] = useState([])
+  const [loadingStatus, setLoadingStatus] = useState('')
   const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches
 
   const componentsMap = {
@@ -59,6 +60,7 @@ const App = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    setLoadingStatus('Cloning Repository...')
     setLoading(true)
     setSubmitted(false)
 
@@ -73,19 +75,40 @@ const App = () => {
         }),
       })
 
-      const data = await response.json()
-      console.log(data)
-      setAnswer(data.answer)
-      setAnswerList((prev) => [...prev, data.answer])
-      console.log(answer)
-      setHistory((prev) => [
-        ...prev,
-        { role: 'user', content: inputValue },
-        { role: 'assistant', content: data.answer.answer },
-      ])
-      setQuestionType(data.answer.type)
-      console.log(questionType)
-      setError(null)
+      const reader = response.body.getReader()
+      const decoder = new TextDecoder()
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+
+        const event = decoder.decode(value)
+        console.log('Received: ', event)
+
+        const lines = event.split('\n')
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const data = JSON.parse(line.replace('data: ', ''))
+            console.log(data.status)
+            if (data.status == 'done') {
+              setAnswer(data.answer)
+              setAnswerList((prev) => [...prev, data.answer])
+              setHistory((prev) => [
+                ...prev,
+                { role: 'user', content: inputValue },
+                { role: 'assistant', content: data.answer.answer },
+              ])
+              setQuestionType(data.answer.type)
+              setError(null)
+            } else if (data.status === 'error') {
+              setError(data.message)
+              setAnswer(null)
+            } else {
+              setLoadingStatus(data.message)
+            }
+          }
+        }
+      }
     } catch (err) {
       setError('Something went wrong. Please try again.')
       console.error('Error:', err)
@@ -93,6 +116,7 @@ const App = () => {
     }
 
     setLoading(false)
+    setLoadingStatus('')
     setSubmitted(true)
   }
 
@@ -154,10 +178,13 @@ const App = () => {
             </div>
           ))}
           {loading && (
-            <div className="animate-pulse space-y-3">
-              <div className="h-4 bg-gray-600 rounded w-3/4" />
-              <div className="h-4 bg-gray-600 rounded w-full" />
-              <div className="h-4 bg-gray-600 rounded w-1/2" />
+            <div className="mt-4 flex items-center gap-3">
+              <div className="flex space-x-1">
+                <div className="w-1.5 h-1.5 bg-white/60 rounded-full animate-bounce [animation-delay:0ms]" />
+                <div className="w-1.5 h-1.5 bg-white/60 rounded-full animate-bounce [animation-delay:150ms]" />
+                <div className="w-1.5 h-1.5 bg-white/60 rounded-full animate-bounce [animation-delay:300ms]" />
+              </div>
+              <span className="text-sm text-white/60">{loadingStatus}</span>
             </div>
           )}
           {submitted && !answer && !loading && (
