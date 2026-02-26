@@ -8,6 +8,9 @@ AutoDev is a Chrome extension that deploys a multi-hop reasoning agent over any 
 
 ---
 
+![chrome-capture-2026-02-26](https://github.com/user-attachments/assets/9966fc1b-813d-4b42-b22b-301a1680e993)
+
+
 ## How It Works
 
 AutoDev uses an agent loop powered by OpenAI's function calling API. Rather than doing a single search and returning results, the agent autonomously chains multiple tool calls to build a complete picture before answering.
