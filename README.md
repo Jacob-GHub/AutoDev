@@ -1,104 +1,106 @@
-# 🔍 AutoDev — Natural Language Search for Your Codebase
+# AutoDev — AI Agent for GitHub Repositories
 
-AutoDev is a tool that lets you **ask natural language questions about your codebase**, and get back the **most relevant functions or code chunks**, using machine learning and semantic search.
+AutoDev is a Chrome extension that deploys a multi-hop reasoning agent over any public GitHub repository. Ask complex questions about a codebase and get back accurate, sourced answers, without cloning the repo or leaving your browser.
 
-> 💬 Ask things like:  
-> "Where do we add a new user?" → returns `def create_user(...)`
-
----
-
-## 🧠 How It Works
-
-1. **Parses your codebase** and extracts each function
-2. **Generates vector embeddings** for each code chunk using openAI's embedding model.
-3. **Stores the embeddings** in a Chroma vector database.
-4. **Embeds user questions** and performs a similarity search.
-5. **Returns the most relevant code snippets**.
+> "How does authentication work in this repo?"  
+> "Trace the flow from the API endpoint to the database."  
+> "What calls `handleQuestion` and where is it defined?"
 
 ---
 
-## 🚀 Example
+## How It Works
 
-```bash
-$ python query.py "How do we connect to the database?"
-```
+AutoDev uses an agent loop powered by OpenAI's function calling API. Rather than doing a single search and returning results, the agent autonomously chains multiple tool calls to build a complete picture before answering.
 
-✅ Result:
-```python
-def connect_to_db():
-    engine = create_engine(DB_URI)
-    return engine.connect()
-```
+For a question like "how does authentication work?", the agent might:
+1. Search for authentication-related code semantically
+2. Find the `auth_middleware` function and read its source
+3. Trace what `auth_middleware` calls using the call graph
+4. Read the `verify_token` implementation
+5. Synthesize a full explanation with file references
+
+Every step is visible to the user in a collapsible reasoning trace.
 
 ---
 
-## 🔧 Setup
+## Architecture
 
-### 1. Clone the Repository
+**Chrome Extension (Frontend)**
+- React/TypeScript sidebar injected into GitHub pages
+- Streams progress updates in real time via Server-Sent Events
+- Displays agent reasoning chain alongside the final answer
 
+**Flask Backend**
+- Clones and indexes repositories on first request
+- Builds a cross-file AST call graph using two-pass Python parsing
+- Stores function embeddings in ChromaDB for semantic search
+- Runs the agent loop using OpenAI function calling
+
+**Agent Tools**
+- `find_function_location` — exact AST lookup for function definitions
+- `get_callers` — find all functions that call a given function
+- `get_called_functions` — find all functions a given function calls
+- `get_function_code` — read actual source code of a function
+- `semantic_search` — vector search over function embeddings
+- `get_repo_structure` — read README and top-level file structure
+
+**Caching**
+- Repositories are cloned once and reused across sessions
+- Call graphs and embeddings are invalidated automatically when the repo's git commit changes
+- Repeated queries on the same repo respond in under 5 seconds
+
+---
+
+## Setup
+
+### 1. Clone the repo
 ```bash
-git clone https://github.com/yourusername/autodev
-cd autodev
+git clone https://github.com/Jacob-GHub/AutoDev
+cd AutoDev
 ```
 
-### 2. Install Dependencies
-
+### 2. Install backend dependencies
 ```bash
+cd backend
 pip install -r requirements.txt
 ```
 
-### 3. Run the Indexer
-
-This will:
-- Walk through the repo
-- Extract functions
-- Embed them
-- Store them in Chroma
-
+### 3. Set your OpenAI API key
 ```bash
-python index_codebase.py --path ./your_project/
+cp .env.example .env
+# Add your OPENAI_API_KEY to .env
 ```
 
-### 4. Ask Questions About Your Code
-
+### 4. Start the backend
 ```bash
-python query.py "Where is the login handled?"
+python server.py
 ```
+
+### 5. Load the extension
+- Open `chrome://extensions`
+- Enable Developer Mode
+- Click "Load unpacked" and select the `frontend/dist` folder
+- Navigate to any public Python GitHub repository and click "Ask Repo Question"
 
 ---
 
-## ⚙️ Configuration
+## Limitations
 
-You can change the embedding model in `config.py`:
-
-```python
-EMBEDDING_MODEL = "microsoft/codebert-base"  # or "sentence-transformers/code-search-net"
-```
+- Currently supports Python repositories only
+- Requires a local backend server running on port 3000
+- Cross-file call resolution is limited to same-language calls
 
 ---
 
-## 📁 Project Structure
+## Roadmap
 
-```
-autodev/
-├── index_codebase.py       # Parses code and populates Chroma
-├── query.py                # Search interface
-├── utils/
-│   ├── ast_utils.py        # Function parsing
-│   └── embedding.py        # Model loading and embedding
-├── config.py
-└── README.md
-```
+- JavaScript/TypeScript support
+- Local repository support via companion CLI
+- Change impact analysis ("if I modify this function, what breaks?")
+- Conversational follow-up with full session memory
 
 ---
 
+## License
 
-## 🧠 Inspiration
-
-Inspired by the idea of making codebases **as searchable as Stack Overflow**, but *custom to your own project.*
-
----
-
-## 📜 License
-
-MIT License.
+MIT
