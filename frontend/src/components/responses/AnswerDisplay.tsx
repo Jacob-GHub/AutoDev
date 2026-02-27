@@ -1,10 +1,17 @@
 // components/responses/AnswerDisplay.jsx
-import React from 'react'
+import React, { forwardRef } from 'react'
 import ReactMarkdown from 'react-markdown'
 
-const AnswerDisplay = ({ answer }) => {
+type AnswerDisplayProps = {
+  answer: string
+}
+
+const AnswerDisplay = forwardRef<HTMLDivElement, AnswerDisplayProps>(({ answer }, ref) => {
   return (
-    <div className="mb-4 p-3 bg-white/10 rounded-lg text-sm text-white leading-relaxed prose prose-invert prose-sm max-w-none">
+    <div
+      ref={ref}
+      className="mb-4 p-3 bg-white/10 rounded-lg text-sm text-white leading-relaxed prose prose-invert prose-sm max-w-none"
+    >
       <ReactMarkdown
         components={{
           h3: ({ children }) => <h3 className="text-white font-semibold mt-3 mb-1">{children}</h3>,
@@ -25,6 +32,6 @@ const AnswerDisplay = ({ answer }) => {
       </ReactMarkdown>
     </div>
   )
-}
+})
 
 export default AnswerDisplay

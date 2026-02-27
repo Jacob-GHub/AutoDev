@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import ReactDOM from 'react-dom'
 import '../style/btn.less'
 import '../style/index.css'
@@ -27,6 +27,7 @@ const App = () => {
   const [error, setError] = useState(null)
   const [history, setHistory] = useState([])
   const [loadingStatus, setLoadingStatus] = useState('')
+  const latestAnswerRef = useRef(null)
   const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches
 
   const componentsMap = {
@@ -35,6 +36,12 @@ const App = () => {
     function_summary: FunctionSummary,
     call_graph: CallGraph,
   }
+
+  useEffect(() => {
+    if (latestAnswerRef.current) {
+      latestAnswerRef.current.scrollIntoView({ behavior: 'smooth' })
+    }
+  }, [answerList])
 
   useEffect(() => {
     const handler = (e) => {
@@ -169,7 +176,7 @@ const App = () => {
         {/* Scrollable answers */}
         <div className="flex-1 overflow-y-auto p-6 space-y-4">
           {answerList.map((ans, idx) => (
-            <div key={idx}>
+            <div key={idx} ref={idx === answerList.length - 1 ? latestAnswerRef : null}>
               <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', marginBottom: '4px' }}>
                 {ans.question}
               </p>

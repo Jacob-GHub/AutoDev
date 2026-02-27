@@ -1,5 +1,5 @@
 // components/responses/ToolCallTrace.jsx
-import React, { useState } from 'react'
+import React, { forwardRef, useState } from 'react'
 
 const toolLabels = {
   find_function_location: 'Located',
@@ -8,6 +8,10 @@ const toolLabels = {
   get_function_code: 'Read code of',
   semantic_search: 'Searched for',
   get_repo_structure: 'Read repo structure',
+}
+
+type ToolProps = {
+  toolCalls: Record<string, string>[]
 }
 
 const ToolCallTrace = ({ toolCalls }) => {

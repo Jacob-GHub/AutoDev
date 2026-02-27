@@ -27,7 +27,7 @@ def ask():
     def generate():
         try:
             # Step 1: Cloning
-            yield f"data: {json.dumps({'status': 'cloning', 'message': 'Cloning repository...'})}\n\n"
+            yield f"data: {json.dumps({'status': 'cloning', 'message': 'Cloning repository...\nThis can take a few minutes for large repos'})}\n\n"
             repo_path, repo_id = clone_repo(repo_url)
 
             if not repo_path:
