@@ -1,5 +1,6 @@
 # Virtual environment
 venv
+.vscode
 
 # Testing files
 test

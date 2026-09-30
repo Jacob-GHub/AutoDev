@@ -39,8 +39,12 @@ def clone_repo(github_url: str, base_dir: Path = Path("repos")) -> Path:
     target_path = base_dir / repo_id / "raw"
 
     if target_path.exists():
-        print(f"Repo already cloned at {target_path}")
-        print("target path", target_path)
+        subprocess.run(
+            ["git", "fetch", "--depth", "1", "origin"], cwd=target_path, check=True
+        )
+        subprocess.run(
+            ["git", "reset", "--hard", "FETCH_HEAD"], cwd=target_path, check=True
+        )
         return target_path, repo_id
 
     print(f"Cloning {github_url} to {target_path}...")
@@ -57,7 +61,7 @@ def clone_repo(github_url: str, base_dir: Path = Path("repos")) -> Path:
         print("Error cloning repo:", e)
         if target_path.exists():
             shutil.rmtree(target_path)
-        return None
+        return None, None
 
 
 def create_collection(path, repo_id):

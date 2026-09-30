@@ -114,7 +114,7 @@ def build_graph(repo_root: Path) -> Dict:
                 # drop external library calls
             func.calls = resolved_calls
 
-        return {"filenodes": [asdict(n) for n in fileNodes]}
+    return {"filenodes": [asdict(n) for n in fileNodes]}
 
 
 def get_current_commit(repo_path: Path) -> str:
