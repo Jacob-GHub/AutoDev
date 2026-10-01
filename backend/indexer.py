@@ -99,18 +99,33 @@ def _git(args, cwd=None):
     return result.stdout.strip()
 
 
-def get_repo_id(github_url: str) -> str:
-    parts = urlparse(github_url).path.strip("/").split("/")
-    if len(parts) < 2:
+def normalize_url(github_url: str) -> str:
+    """
+    One canonical URL per repo, so ".../AutoDev", ".../AutoDev.git" and ".../autodev/"
+    all map to the same repo_id instead of three separate copies in the database.
+    """
+    parts = urlparse(github_url.strip()).path.strip("/").split("/")
+    if len(parts) < 2 or not parts[0] or not parts[1]:
         raise ValueError(f"Invalid GitHub URL: {github_url}")
     owner, repo = parts[0], parts[1].removesuffix(".git")
-    return f"{owner}_{repo}_{sha1(github_url.encode()).hexdigest()[:7]}"
+    return f"https://github.com/{owner}/{repo}".lower()
+
+
+def get_repo_id(github_url: str) -> str:
+    url = normalize_url(github_url)
+    owner, repo = urlparse(url).path.strip("/").split("/")
+    return f"{owner}_{repo}_{sha1(url.encode()).hexdigest()[:7]}"
+
+
+def repo_path_for(repo_id: str) -> Path:
+    return REPOS_DIR / repo_id / "raw"
 
 
 def clone_or_update(github_url: str):
     """Shallow-clones the repo, or fast-forwards an existing clone to the remote's latest commit."""
+    github_url = normalize_url(github_url)
     repo_id = get_repo_id(github_url)
-    path = REPOS_DIR / repo_id / "raw"
+    path = repo_path_for(repo_id)
 
     if (path / ".git").exists():
         _git(["fetch", "--depth", "1", "origin"], cwd=path)
@@ -270,6 +285,7 @@ def resolve_calls(functions) -> list:
 
 def index_repo(github_url: str, rebuild: bool = False) -> IndexStats:
     t0 = time.perf_counter()
+    github_url = normalize_url(github_url)
     repo_path, repo_id = clone_or_update(github_url)
     commit = _git(["rev-parse", "HEAD"], cwd=repo_path)
 

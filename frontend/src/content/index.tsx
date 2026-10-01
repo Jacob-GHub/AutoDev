@@ -10,6 +10,20 @@ import { createRoot } from 'react-dom/client'
 import AnswerDisplay from '../components/responses/AnswerDisplay'
 import ToolCallTrace from '../components/responses/ToolCallTrace'
 
+type ToolCall = { tool: string; args: Record<string, unknown>; result: unknown }
+
+type AgentAnswer = {
+  type: string
+  question: string
+  answer: string
+  tool_calls: ToolCall[]
+}
+
+type StreamEvent =
+  | { status: 'done'; answer: AgentAnswer; conversationId: string }
+  | { status: 'error'; message: string }
+  | { status: 'indexing' | 'thinking'; message: string }
+
 const root = document.createElement('div')
 root.id = 'crx-root'
 document.body.appendChild(root)
@@ -18,19 +32,19 @@ const App = () => {
   const [showModal, setShowModal] = useState(false)
   const [inputValue, setInputValue] = useState('')
   const [loading, setLoading] = useState(false)
-  const [answer, setAnswer] = useState(null)
-  const [answerList, setAnswerList] = useState([])
+  const [answer, setAnswer] = useState<AgentAnswer | null>(null)
+  const [answerList, setAnswerList] = useState<AgentAnswer[]>([])
   const [submitted, setSubmitted] = useState(false)
   const [questionType, setQuestionType] = useState('semantic_lookup')
   const [validAnswer, setValidAnswer] = useState(false)
   const [open, setOpen] = useState(false)
-  const [error, setError] = useState(null)
-  const [history, setHistory] = useState([])
+  const [error, setError] = useState<string | null>(null)
+  const [conversationId, setConversationId] = useState<string | null>(null)
   const [loadingStatus, setLoadingStatus] = useState('')
-  const latestAnswerRef = useRef(null)
+  const latestAnswerRef = useRef<HTMLDivElement | null>(null)
   const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches
 
-  const componentsMap = {
+  const componentsMap: Record<string, React.ComponentType<any>> = {
     semantic_lookup: SemanticLookup,
     repo_summary: RepoSummary,
     function_summary: FunctionSummary,
@@ -44,7 +58,7 @@ const App = () => {
   }, [answerList])
 
   useEffect(() => {
-    const handler = (e) => {
+    const handler = (e: KeyboardEvent) => {
       if (e.key === 'Escape') setOpen(false)
     }
     window.addEventListener('keydown', handler)
@@ -53,7 +67,7 @@ const App = () => {
 
   useEffect(() => {
     if (open) {
-      setTimeout(() => document.querySelector('input')?.focus(), 100)
+      setTimeout(() => document.querySelector<HTMLInputElement>('#crx-root input')?.focus(), 100)
     }
   }, [open])
 
@@ -65,59 +79,73 @@ const App = () => {
     return `https://github.com/${match[1]}/${match[2]}.git`
   }
 
-  const handleSubmit = async (e) => {
+  const handleEvent = (data: StreamEvent) => {
+    if (data.status === 'done') {
+      setAnswer(data.answer)
+      setAnswerList((prev) => [...prev, data.answer])
+      setConversationId(data.conversationId)
+      setQuestionType(data.answer.type)
+      setError(null)
+    } else if (data.status === 'error') {
+      setError(data.message)
+      setAnswer(null)
+    } else {
+      setLoadingStatus(data.message)
+    }
+  }
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    setLoadingStatus('Cloning Repository...')
+    const question = inputValue.trim()
+    if (!question) return
+
+    setLoadingStatus('Syncing repository...')
     setLoading(true)
     setSubmitted(false)
+    setInputValue('')
 
     try {
       const response = await fetch('http://127.0.0.1:3000/api/ask', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          question: inputValue,
+          question,
           repoUrl: extractRepoUrl(),
-          history: history,
+          conversationId,
         }),
       })
 
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({}))
+        throw new Error(body.error || `Server returned ${response.status}`)
+      }
+
+      if (!response.body) throw new Error('Server sent an empty response')
+
       const reader = response.body.getReader()
       const decoder = new TextDecoder()
+      let buffer = ''
 
       while (true) {
         const { done, value } = await reader.read()
         if (done) break
 
-        const event = decoder.decode(value)
-        console.log('Received: ', event)
+        // A network chunk can end mid-event, so only parse complete events
+        // (terminated by a blank line) and keep the remainder for the next chunk.
+        buffer += decoder.decode(value, { stream: true })
+        const events = buffer.split('\n\n')
+        buffer = events.pop() ?? ''
 
-        const lines = event.split('\n')
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            const data = JSON.parse(line.replace('data: ', ''))
-            console.log(data.status)
-            if (data.status == 'done') {
-              setAnswer(data.answer)
-              setAnswerList((prev) => [...prev, data.answer])
-              setHistory((prev) => [
-                ...prev,
-                { role: 'user', content: inputValue },
-                { role: 'assistant', content: data.answer.answer },
-              ])
-              setQuestionType(data.answer.type)
-              setError(null)
-            } else if (data.status === 'error') {
-              setError(data.message)
-              setAnswer(null)
-            } else {
-              setLoadingStatus(data.message)
+        for (const event of events) {
+          for (const line of event.split('\n')) {
+            if (line.startsWith('data: ')) {
+              handleEvent(JSON.parse(line.slice(6)) as StreamEvent)
             }
           }
         }
       }
     } catch (err) {
-      setError('Something went wrong. Please try again.')
+      setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.')
       console.error('Error:', err)
       setAnswer(null)
     }
@@ -127,7 +155,7 @@ const App = () => {
     setSubmitted(true)
   }
 
-  const handleAnswer = async (e) => {
+  const handleAnswer = async (e: React.FormEvent) => {
     e.preventDefault()
   }
 
@@ -157,7 +185,7 @@ const App = () => {
               <button
                 onClick={() => {
                   setAnswerList([])
-                  setHistory([])
+                  setConversationId(null)
                 }}
                 className="text-white/50 text-xs hover:text-white"
               >
