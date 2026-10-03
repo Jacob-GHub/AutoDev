@@ -1,263 +1,52 @@
-import React, { useEffect, useRef, useState } from 'react'
-import ReactDOM from 'react-dom'
-import '../style/btn.less'
-import '../style/index.css'
-import SemanticLookup from '../components/responses/semantic_lookup/index'
-import RepoSummary from '../components/responses/repo_summary'
-import FunctionSummary from '../components/responses/function_summary'
-import CallGraph from '../components/responses/call_graph'
+import React from 'react'
 import { createRoot } from 'react-dom/client'
-import AnswerDisplay from '../components/responses/AnswerDisplay'
-import ToolCallTrace from '../components/responses/ToolCallTrace'
+import App from '../app/App'
+import { appStyles } from '../app/styles'
 
-type ToolCall = { tool: string; args: Record<string, unknown>; result: unknown }
+const HOST_ID = 'autodev-root'
 
-type AgentAnswer = {
-  type: string
-  question: string
-  answer: string
-  tool_calls: ToolCall[]
-}
+/**
+ * Mounts AutoDev inside a Shadow DOM: GitHub's CSS can't style our UI,
+ * and our CSS can't leak onto GitHub's page.
+ */
+function mount() {
+  if (document.getElementById(HOST_ID)) return // already mounted
 
-type StreamEvent =
-  | { status: 'done'; answer: AgentAnswer; conversationId: string }
-  | { status: 'error'; message: string }
-  | { status: 'indexing' | 'thinking'; message: string }
-
-const root = document.createElement('div')
-root.id = 'crx-root'
-document.body.appendChild(root)
-
-const App = () => {
-  const [showModal, setShowModal] = useState(false)
-  const [inputValue, setInputValue] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [answer, setAnswer] = useState<AgentAnswer | null>(null)
-  const [answerList, setAnswerList] = useState<AgentAnswer[]>([])
-  const [submitted, setSubmitted] = useState(false)
-  const [questionType, setQuestionType] = useState('semantic_lookup')
-  const [validAnswer, setValidAnswer] = useState(false)
-  const [open, setOpen] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [conversationId, setConversationId] = useState<string | null>(null)
-  const [loadingStatus, setLoadingStatus] = useState('')
-  const latestAnswerRef = useRef<HTMLDivElement | null>(null)
-  const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches
-
-  const componentsMap: Record<string, React.ComponentType<any>> = {
-    semantic_lookup: SemanticLookup,
-    repo_summary: RepoSummary,
-    function_summary: FunctionSummary,
-    call_graph: CallGraph,
-  }
-
-  useEffect(() => {
-    if (latestAnswerRef.current) {
-      latestAnswerRef.current.scrollIntoView({ behavior: 'smooth' })
-    }
-  }, [answerList])
-
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setOpen(false)
-    }
-    window.addEventListener('keydown', handler)
-    return () => window.removeEventListener('keydown', handler)
-  }, [])
-
-  useEffect(() => {
-    if (open) {
-      setTimeout(() => document.querySelector<HTMLInputElement>('#crx-root input')?.focus(), 100)
-    }
-  }, [open])
-
-  const SelectedComponent = componentsMap[questionType]
-
-  const extractRepoUrl = () => {
-    const match = window.location.pathname.match(/^\/([^/]+)\/([^/]+)/)
-    if (!match) return null
-    return `https://github.com/${match[1]}/${match[2]}.git`
-  }
-
-  const handleEvent = (data: StreamEvent) => {
-    if (data.status === 'done') {
-      setAnswer(data.answer)
-      setAnswerList((prev) => [...prev, data.answer])
-      setConversationId(data.conversationId)
-      setQuestionType(data.answer.type)
-      setError(null)
-    } else if (data.status === 'error') {
-      setError(data.message)
-      setAnswer(null)
-    } else {
-      setLoadingStatus(data.message)
-    }
-  }
-
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-    const question = inputValue.trim()
-    if (!question) return
-
-    setLoadingStatus('Syncing repository...')
-    setLoading(true)
-    setSubmitted(false)
-    setInputValue('')
-
-    try {
-      const response = await fetch('http://127.0.0.1:3000/api/ask', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          question,
-          repoUrl: extractRepoUrl(),
-          conversationId,
-        }),
-      })
-
-      if (!response.ok) {
-        const body = await response.json().catch(() => ({}))
-        throw new Error(body.error || `Server returned ${response.status}`)
+  // The rotating border light animates a custom property, which only works once it's
+  // registered as an angle. Registration is page-wide and throws if repeated.
+  try {
+    ;(
+      CSS as typeof CSS & {
+        registerProperty: (property: {
+          name: string
+          syntax: string
+          inherits: boolean
+          initialValue: string
+        }) => void
       }
-
-      if (!response.body) throw new Error('Server sent an empty response')
-
-      const reader = response.body.getReader()
-      const decoder = new TextDecoder()
-      let buffer = ''
-
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
-
-        // A network chunk can end mid-event, so only parse complete events
-        // (terminated by a blank line) and keep the remainder for the next chunk.
-        buffer += decoder.decode(value, { stream: true })
-        const events = buffer.split('\n\n')
-        buffer = events.pop() ?? ''
-
-        for (const event of events) {
-          for (const line of event.split('\n')) {
-            if (line.startsWith('data: ')) {
-              handleEvent(JSON.parse(line.slice(6)) as StreamEvent)
-            }
-          }
-        }
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.')
-      console.error('Error:', err)
-      setAnswer(null)
-    }
-
-    setLoading(false)
-    setLoadingStatus('')
-    setSubmitted(true)
+    ).registerProperty({
+      name: '--ad-angle',
+      syntax: '<angle>',
+      inherits: false,
+      initialValue: '0deg',
+    })
+  } catch {
+    // already registered
   }
 
-  const handleAnswer = async (e: React.FormEvent) => {
-    e.preventDefault()
-  }
+  const host = document.createElement('div')
+  host.id = HOST_ID
+  // Attach to <html> rather than <body>: GitHub swaps out <body> when navigating.
+  document.documentElement.appendChild(host)
 
-  return (
-    <>
-      {/* Floating Button */}
-      {!open && (
-        <button
-          onClick={() => setOpen(!open)}
-          className="fixed bottom-10 right-10 z-[9999] bg-neutral-100 text-black hover:bg-neutral-200 px-4 py-3 rounded-full shadow-lg backdrop-blur hover:bg-white transition-colors"
-        >
-          Ask Repo Question
-        </button>
-      )}
+  const shadow = host.attachShadow({ mode: 'open' })
+  const style = document.createElement('style')
+  style.textContent = appStyles
+  shadow.appendChild(style)
 
-      {/* Sidebar */}
-      <div
-        className={`fixed top-0 right-0 h-full w-[400px] backdrop-blur-md bg-black bg-opacity-50 text-white shadow-2xl border-l border-white/10 z-[9998] transition-transform duration-300 ease-in-out flex flex-col ${
-          open ? 'translate-x-0' : 'translate-x-full'
-        }`}
-      >
-        {/* Header */}
-        <div className="flex justify-between items-center p-6 pb-4 border-b border-white/10">
-          <h2 className="text-lg font-semibold">Ask a question</h2>
-          <div className="flex gap-2 items-center">
-            {answerList.length > 0 && (
-              <button
-                onClick={() => {
-                  setAnswerList([])
-                  setConversationId(null)
-                }}
-                className="text-white/50 text-xs hover:text-white"
-              >
-                Clear
-              </button>
-            )}
-            <button
-              onClick={() => setOpen(false)}
-              className="text-white text-xl hover:text-red-400"
-            >
-              ✖
-            </button>
-          </div>
-        </div>
-
-        {/* Scrollable answers */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-4">
-          {answerList.map((ans, idx) => (
-            <div key={idx} ref={idx === answerList.length - 1 ? latestAnswerRef : null}>
-              <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', marginBottom: '4px' }}>
-                {ans.question}
-              </p>
-              <ToolCallTrace toolCalls={ans.tool_calls} />
-              <AnswerDisplay answer={ans.answer} />
-            </div>
-          ))}
-          {loading && (
-            <div className="mt-4 flex items-center gap-3">
-              <div className="flex space-x-1">
-                <div className="w-1.5 h-1.5 bg-white/60 rounded-full animate-bounce [animation-delay:0ms]" />
-                <div className="w-1.5 h-1.5 bg-white/60 rounded-full animate-bounce [animation-delay:150ms]" />
-                <div className="w-1.5 h-1.5 bg-white/60 rounded-full animate-bounce [animation-delay:300ms]" />
-              </div>
-              <span className="text-sm text-white/60">{loadingStatus}</span>
-            </div>
-          )}
-          {submitted && !answer && !loading && (
-            <p className="text-red-300 text-sm">No relevant code found.</p>
-          )}
-        </div>
-
-        {/* Sticky input at bottom */}
-        <div className="p-4 border-t border-white/10">
-          {error && <p className="text-red-400 mb-2 text-sm">{error}</p>}
-          <form onSubmit={handleSubmit} className="flex gap-2">
-            <input
-              type="text"
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              className="flex-1 bg-black bg-opacity-30 border border-white/20 rounded px-3 py-2 text-white placeholder-gray-300"
-              placeholder="Ask a question..."
-            />
-            <button
-              type="submit"
-              disabled={loading}
-              className={`px-4 py-2 rounded font-semibold ${
-                loading
-                  ? 'bg-gray-500 cursor-not-allowed'
-                  : 'bg-neutral-100 text-black hover:bg-neutral-200'
-              }`}
-            >
-              {loading ? '...' : 'Ask'}
-            </button>
-          </form>
-        </div>
-      </div>
-    </>
-  )
+  const container = document.createElement('div')
+  shadow.appendChild(container)
+  createRoot(container).render(<App />)
 }
-const container = document.getElementById('crx-root')
 
-if (container) {
-  const root = createRoot(container)
-  root.render(<App />)
-}
+mount()

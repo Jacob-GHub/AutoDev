@@ -1,0 +1,309 @@
+/** Styles for the launcher, glass panel, conversation, and composer. */
+export const panelStyles = /* css */ `
+/* ---------------------------------------------------------------- launcher */
+.ad-launcher {
+  position: fixed;
+  right: 28px;
+  bottom: 0;
+  z-index: 2147483646;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  /* Peek: sink Gloop partway below the edge of the screen. */
+  transform: translateY(16%);
+  transition: transform 0.5s cubic-bezier(.3,1.4,.5,1), opacity 0.3s ease;
+}
+.ad-launcher:hover,
+.ad-launcher:focus-visible { transform: translateY(2%); outline: none; }
+.ad-launcher.is-hidden {
+  transform: translateY(120%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* ---------------------------------------------------------------- panel */
+.ad-panel {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  bottom: 16px;
+  z-index: 2147483647;
+  width: min(400px, calc(100vw - 32px));
+  display: flex;
+  flex-direction: column;
+  color: var(--text);
+  background: var(--glass);
+  border: 1px solid var(--hairline);
+  border-radius: 24px;
+  backdrop-filter: blur(28px) saturate(140%);
+  -webkit-backdrop-filter: blur(28px) saturate(140%);
+  box-shadow:
+    0 30px 80px rgba(0, 0, 0, 0.55),
+    0 0 70px rgba(var(--glow), var(--panel-glow, 0.05));
+  /* Closed: slid off to the right, hidden from keyboard focus. */
+  transform: translateX(calc(100% + 32px));
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    transform 0.55s cubic-bezier(.2,.9,.25,1),
+    opacity 0.4s ease,
+    box-shadow 1.2s ease,
+    visibility 0s linear 0.55s;
+}
+.ad-panel.is-open {
+  transform: none;
+  opacity: 1;
+  visibility: visible;
+  transition:
+    transform 0.55s cubic-bezier(.2,.9,.25,1),
+    opacity 0.4s ease,
+    box-shadow 1.2s ease,
+    visibility 0s;
+}
+
+/* The light that travels around the border while thinking: a rotating conic
+   gradient, masked so only a 1px ring at the border shows through. */
+.ad-panel::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 1px;
+  background: conic-gradient(
+    from var(--ad-angle, 0deg),
+    transparent 0 62%,
+    rgba(var(--glow), 0.95) 82%,
+    transparent 100%
+  );
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0;
+  transition: opacity 0.8s ease;
+  pointer-events: none;
+}
+.ad-panel[data-mood="thinking"]::before { opacity: 1; animation: ad-orbit 2.8s linear infinite; }
+.ad-panel[data-mood="thinking"]         { --panel-glow: 0.12; }
+.ad-panel[data-mood="done"]             { --panel-glow: 0.09; }
+
+@keyframes ad-orbit { to { --ad-angle: 360deg; } }
+
+/* ---------------------------------------------------------------- header */
+.ad-header {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 210px;
+  padding: 18px 24px 16px;
+  border-bottom: 1px solid var(--hairline);
+}
+.ad-header-actions {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.ad-text-btn,
+.ad-icon-btn {
+  font: 500 12px var(--font);
+  color: var(--text-dim);
+  background: none;
+  border: 0;
+  border-radius: 999px;
+  padding: 6px 10px;
+  cursor: pointer;
+  transition: color 0.2s, background 0.2s;
+}
+.ad-icon-btn { font-size: 13px; width: 30px; height: 30px; padding: 0; }
+.ad-text-btn:hover,
+.ad-icon-btn:hover { color: var(--text); background: rgba(255, 255, 255, 0.08); }
+
+.ad-name {
+  margin-top: 4px;
+  font: 600 15px var(--font);
+  letter-spacing: -0.01em;
+}
+.ad-caption {
+  margin-top: 3px;
+  min-height: 18px;
+  max-width: 100%;
+  font-size: 13px;
+  color: var(--text-dim);
+  text-align: center;
+}
+
+/* ---------------------------------------------------------------- conversation */
+.ad-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+}
+.ad-empty {
+  justify-content: center;
+  text-align: center;
+  font-size: 13px;
+  line-height: 1.6;
+  color: rgba(238, 242, 234, 0.4);
+  padding: 32px;
+}
+.ad-turn {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  animation: ad-rise 0.5s ease both;
+}
+.ad-question {
+  align-self: flex-end;
+  max-width: 85%;
+  padding: 9px 14px;
+  background: rgba(255, 255, 255, 0.09);
+  border-radius: 16px 16px 4px 16px;
+  font-size: 14px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+.ad-reply { animation: ad-rise 0.6s ease both; }
+.ad-error {
+  margin: 0;
+  font-size: 13px;
+  color: #ff9b9b;
+}
+@keyframes ad-rise {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* answer markdown */
+.ad-answer {
+  font-size: 14px;
+  line-height: 1.6;
+  color: rgba(238, 242, 234, 0.88);
+  overflow-wrap: anywhere;
+}
+.ad-answer > :first-child { margin-top: 0; }
+.ad-answer > :last-child  { margin-bottom: 0; }
+.ad-answer p  { margin: 0 0 10px; }
+.ad-answer h1,
+.ad-answer h2,
+.ad-answer h3 { font-size: 14px; font-weight: 600; color: var(--text); margin: 16px 0 6px; }
+.ad-answer ul,
+.ad-answer ol { margin: 0 0 10px; padding-left: 20px; }
+.ad-answer li { margin: 3px 0; }
+.ad-answer li::marker { color: rgba(var(--glow), 0.8); }
+.ad-answer strong { color: var(--text); font-weight: 600; }
+.ad-answer a { color: rgb(var(--glow)); }
+.ad-answer code {
+  font: 12.5px var(--mono);
+  background: rgba(255, 255, 255, 0.07);
+  padding: 1px 5px;
+  border-radius: 5px;
+}
+.ad-answer pre {
+  margin: 0 0 10px;
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid var(--hairline);
+  border-radius: 12px;
+  overflow-x: auto;
+}
+.ad-answer pre code { background: none; padding: 0; font-size: 12px; line-height: 1.55; }
+
+/* tool trace */
+.ad-trace { margin-bottom: 10px; }
+.ad-trace-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font: 12px var(--font);
+  color: var(--text-dim);
+  background: none;
+  padding: 4px 10px;
+  border: 1px solid var(--hairline);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: color 0.2s, border-color 0.2s;
+}
+.ad-trace-toggle:hover { color: var(--text); border-color: rgba(255, 255, 255, 0.16); }
+.ad-trace-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgb(var(--glow));
+  box-shadow: 0 0 8px rgba(var(--glow), 0.8);
+}
+.ad-trace-chevron { transition: transform 0.25s ease; }
+.ad-trace-toggle.is-expanded .ad-trace-chevron { transform: rotate(90deg); }
+.ad-trace-steps {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0 0 0 12px;
+  border-left: 1px solid var(--hairline);
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  font-size: 12px;
+  color: var(--text-dim);
+  animation: ad-rise 0.3s ease both;
+}
+.ad-trace-steps li { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.ad-trace-steps code {
+  font: 11.5px var(--mono);
+  color: rgba(238, 242, 234, 0.85);
+  background: rgba(255, 255, 255, 0.06);
+  padding: 2px 6px;
+  border-radius: 5px;
+  overflow-wrap: anywhere;
+}
+
+/* ---------------------------------------------------------------- composer */
+.ad-composer {
+  display: flex;
+  gap: 8px;
+  padding: 14px;
+  border-top: 1px solid var(--hairline);
+}
+.ad-composer input {
+  flex: 1;
+  min-width: 0;
+  font: 14px var(--font);
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--hairline);
+  border-radius: 999px;
+  padding: 11px 16px;
+  outline: none;
+  transition: border-color 0.25s, box-shadow 0.25s;
+}
+.ad-composer input::placeholder { color: rgba(238, 242, 234, 0.35); }
+.ad-composer input:focus {
+  border-color: rgba(var(--glow), 0.4);
+  box-shadow: 0 0 0 4px rgba(var(--glow), 0.08);
+}
+.ad-composer button {
+  width: 42px;
+  height: 42px;
+  flex: none;
+  border: 0;
+  border-radius: 50%;
+  background: rgb(var(--glow));
+  color: #0b2a08;
+  font: 600 18px var(--font);
+  cursor: pointer;
+  box-shadow: 0 0 18px rgba(var(--glow), 0.35);
+  transition: opacity 0.25s, box-shadow 0.25s;
+}
+.ad-composer button:disabled {
+  opacity: 0.35;
+  box-shadow: none;
+  cursor: default;
+}
+`

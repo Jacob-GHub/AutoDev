@@ -1,0 +1,671 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Gloop Prototype</title>
+<style>
+  /* ------------------------------------------------------------------
+     Design tokens. --glow is Gloop's color as "r, g, b" so it can be
+     reused with any transparency: rgba(var(--glow), 0.3)
+  ------------------------------------------------------------------ */
+  :root {
+    --glow: 168, 226, 58;
+    --bg: #090b09;
+    --text: #eef2ea;
+    --text-dim: rgba(238, 242, 234, 0.55);
+    --glass: rgba(20, 23, 20, 0.55);
+    --hairline: rgba(255, 255, 255, 0.08);
+    --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+  }
+
+  /* Registers --angle as a real angle so the browser can animate it
+     (used for the light that travels around the panel's border). */
+  @property --angle {
+    syntax: "<angle>";
+    inherits: false;
+    initial-value: 0deg;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    -webkit-font-smoothing: antialiased;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 32px 16px 48px;
+    overflow-x: hidden;
+  }
+
+  /* Fake code in the background, so the panel's blur has something to blur. */
+  .backdrop-code {
+    position: fixed;
+    inset: 0;
+    padding: 40px;
+    font: 13px/1.9 ui-monospace, "SF Mono", Menlo, monospace;
+    color: rgba(255, 255, 255, 0.07);
+    white-space: pre;
+    overflow: hidden;
+    pointer-events: none;
+    user-select: none;
+  }
+
+  /* ------------------------------------------------------------------
+     Mood controls (prototype only, not part of the real extension)
+  ------------------------------------------------------------------ */
+  .controls {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 4px;
+    padding: 4px;
+    margin-bottom: 28px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--hairline);
+    border-radius: 999px;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+  }
+  .controls button {
+    font: 500 13px var(--font);
+    color: var(--text-dim);
+    background: transparent;
+    border: 0;
+    padding: 8px 14px;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: color 0.25s, background 0.25s;
+  }
+  .controls button:hover { color: var(--text); }
+  .controls button[aria-pressed="true"] {
+    color: var(--text);
+    background: rgba(255, 255, 255, 0.1);
+  }
+  .controls .play { color: rgb(var(--glow)); }
+
+  /* ------------------------------------------------------------------
+     The glass panel
+  ------------------------------------------------------------------ */
+  .panel {
+    position: relative;
+    z-index: 1;
+    width: min(400px, 100%);
+    height: 640px;
+    display: flex;
+    flex-direction: column;
+    background: var(--glass);
+    border: 1px solid var(--hairline);
+    border-radius: 24px;
+    backdrop-filter: blur(28px) saturate(140%);
+    -webkit-backdrop-filter: blur(28px) saturate(140%);
+    box-shadow:
+      0 30px 80px rgba(0, 0, 0, 0.55),
+      0 0 70px rgba(var(--glow), var(--panel-glow, 0.05));
+    transition: box-shadow 1.2s ease;
+  }
+
+  /* The traveling light on the border. A rotating conic gradient,
+     masked so only a 1px ring at the border shows through. */
+  .panel::before {
+    content: "";
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    padding: 1px;
+    background: conic-gradient(
+      from var(--angle),
+      transparent 0 62%,
+      rgba(var(--glow), 0.95) 82%,
+      transparent 100%
+    );
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    opacity: 0;
+    transition: opacity 0.8s ease;
+    pointer-events: none;
+  }
+
+  .panel-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px 24px 18px;
+    border-bottom: 1px solid var(--hairline);
+  }
+
+  /* ------------------------------------------------------------------
+     Gloop
+  ------------------------------------------------------------------ */
+  .gloop-wrap {
+    position: relative;
+    width: 150px;
+    height: 160px;
+  }
+
+  /* Soft light behind Gloop. Its brightness is the main mood signal. */
+  .halo {
+    position: absolute;
+    left: 50%;
+    top: 58%;
+    width: 170px;
+    height: 170px;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(var(--glow), 0.55), transparent 65%);
+    filter: blur(18px);
+    opacity: 0.25;
+    animation: halo-breathe 5s ease-in-out infinite;
+    transition: opacity 0.8s ease;
+  }
+
+  .gloop {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+    filter: drop-shadow(0 0 14px rgba(var(--glow), 0.25));
+    transition: filter 0.8s ease;
+  }
+
+  /* SVG parts move around their own anchor points. "view-box" means the
+     transform-origin numbers are in the SVG's own coordinates. */
+  .g-root      { transform-box: view-box; transform-origin: 100px 196px; transition: transform 0.6s cubic-bezier(.3,1.4,.5,1); }
+  .g-squish    { transform-box: view-box; transform-origin: 100px 192px; animation: breathe 4.2s ease-in-out infinite; }
+  .stalk-l     { transform-box: view-box; transform-origin: 88px 68px;  transition: transform 0.7s cubic-bezier(.3,1.3,.5,1); }
+  .stalk-r     { transform-box: view-box; transform-origin: 112px 68px; transition: transform 0.7s cubic-bezier(.3,1.3,.5,1); }
+  .sway-l      { transform-box: view-box; transform-origin: 88px 68px;  animation: sway 3.3s ease-in-out infinite; }
+  .sway-r      { transform-box: view-box; transform-origin: 112px 68px; animation: sway 3.8s ease-in-out -1.2s infinite; }
+  .eye-l       { transform-box: view-box; transform-origin: 70px 30px;  transition: transform 0.09s ease; }
+  .eye-r       { transform-box: view-box; transform-origin: 130px 30px; transition: transform 0.09s ease; }
+  .pupil       { transition: transform 0.14s ease-out; }
+  .lid-top, .lid-bottom { transition: transform 0.45s cubic-bezier(.3,1.2,.5,1); }
+
+  .mouth {
+    fill: none;
+    stroke: #1f3a0a;
+    stroke-width: 3.2;
+    stroke-linecap: round;
+    d: path("M92,104 Q100,111 108,104");
+    transition: d 0.45s cubic-bezier(.3,1.3,.5,1);
+  }
+
+  /* Blink: the eyes squash flat for a moment. JavaScript adds .blinking. */
+  .gloop.blinking .eye-l,
+  .gloop.blinking .eye-r { transform: scaleY(0.08); }
+
+  /* ------------------------------------------------------------------
+     Moods. JavaScript sets data-mood on .panel; everything below
+     reacts to it. Transitions above make every change ease in.
+  ------------------------------------------------------------------ */
+
+  /* reading: leans in toward the code, glow pulses slowly */
+  [data-mood="reading"] .stalk-l { transform: rotate(9deg); }
+  [data-mood="reading"] .stalk-r { transform: rotate(-9deg); }
+  [data-mood="reading"] .lid-top { transform: translateY(6px); }
+  [data-mood="reading"] .mouth   { d: path("M95,106 Q100,108 105,106"); }
+  [data-mood="reading"] .halo    { animation: halo-pulse 2.4s ease-in-out infinite; }
+
+  /* thinking: eyes narrow, body sways, light travels around the panel */
+  [data-mood="thinking"] .g-root  { animation: ponder 2.6s ease-in-out infinite; }
+  [data-mood="thinking"] .stalk-l { transform: rotate(-6deg); }
+  [data-mood="thinking"] .stalk-r { transform: rotate(4deg); }
+  [data-mood="thinking"] .lid-top { transform: translateY(11px); }
+  [data-mood="thinking"] .mouth   { d: path("M94,106 Q100,104 106,106"); }
+  [data-mood="thinking"] .halo    { opacity: 0.45; animation: halo-pulse 1.8s ease-in-out infinite; }
+  [data-mood="thinking"].panel::before { opacity: 1; animation: orbit 2.8s linear infinite; }
+  [data-mood="thinking"].panel   { --panel-glow: 0.12; }
+
+  /* done: a happy hop, smiling eyes, one soft bloom */
+  [data-mood="done"] .g-root.hop  { animation: hop 0.9s cubic-bezier(.3,.8,.4,1); }
+  [data-mood="done"] .lid-bottom  { transform: translateY(-12px); }
+  [data-mood="done"] .mouth       { d: path("M90,102 Q100,117 110,102"); }
+  [data-mood="done"] .halo        { animation: bloom 2.2s ease-out forwards; }
+  [data-mood="done"] .gloop       { filter: drop-shadow(0 0 20px rgba(var(--glow), 0.4)); }
+
+  /* error: tilts, droopy eyes, glow and color fade */
+  [data-mood="error"] .g-root  { transform: rotate(-7deg); }
+  [data-mood="error"] .stalk-l { transform: rotate(-14deg); }
+  [data-mood="error"] .stalk-r { transform: rotate(10deg); }
+  [data-mood="error"] .lid-top { transform: translateY(9px); }
+  [data-mood="error"] .mouth   { d: path("M93,109 Q100,102 107,109"); }
+  [data-mood="error"] .halo    { opacity: 0.08; animation: none; }
+  [data-mood="error"] .gloop   { filter: saturate(0.55) drop-shadow(0 0 8px rgba(var(--glow), 0.1)); }
+
+  /* ------------------------------------------------------------------
+     Keyframes
+  ------------------------------------------------------------------ */
+  @keyframes breathe {
+    0%, 100% { transform: scale(1, 1); }
+    50%      { transform: scale(1.025, 0.975); }
+  }
+  @keyframes sway {
+    0%, 100% { transform: rotate(-3deg); }
+    50%      { transform: rotate(3deg); }
+  }
+  @keyframes ponder {
+    0%, 100% { transform: rotate(-2.5deg); }
+    50%      { transform: rotate(2.5deg); }
+  }
+  @keyframes hop {
+    0%   { transform: translateY(0) scale(1, 1); }
+    18%  { transform: translateY(0) scale(1.1, 0.88); }
+    45%  { transform: translateY(-22px) scale(0.94, 1.07); }
+    70%  { transform: translateY(0) scale(1.08, 0.92); }
+    85%  { transform: translateY(0) scale(0.98, 1.02); }
+    100% { transform: translateY(0) scale(1, 1); }
+  }
+  @keyframes halo-breathe {
+    0%, 100% { opacity: 0.18; }
+    50%      { opacity: 0.3; }
+  }
+  @keyframes halo-pulse {
+    0%, 100% { opacity: 0.22; }
+    50%      { opacity: 0.5; }
+  }
+  @keyframes bloom {
+    0%   { opacity: 0.3; }
+    25%  { opacity: 0.85; }
+    100% { opacity: 0.3; }
+  }
+  @keyframes orbit {
+    to { --angle: 360deg; }
+  }
+
+  .name {
+    margin-top: 6px;
+    font: 600 15px var(--font);
+    letter-spacing: -0.01em;
+  }
+  .caption {
+    margin-top: 3px;
+    min-height: 18px;
+    font-size: 13px;
+    color: var(--text-dim);
+    transition: opacity 0.3s ease;
+  }
+  .caption code {
+    font: 12px ui-monospace, "SF Mono", Menlo, monospace;
+    color: rgba(var(--glow), 0.9);
+  }
+
+  /* ------------------------------------------------------------------
+     Conversation
+  ------------------------------------------------------------------ */
+  .messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .msg-user {
+    align-self: flex-end;
+    max-width: 80%;
+    padding: 9px 14px;
+    background: rgba(255, 255, 255, 0.09);
+    border-radius: 16px 16px 4px 16px;
+    font-size: 14px;
+  }
+  .msg-answer {
+    font-size: 14px;
+    line-height: 1.6;
+    color: rgba(238, 242, 234, 0.88);
+    opacity: 0;
+    transform: translateY(6px);
+    transition: opacity 0.6s ease, transform 0.6s ease;
+  }
+  .msg-answer.show { opacity: 1; transform: none; }
+  .msg-answer p { margin: 0 0 10px; }
+  .msg-answer code {
+    font: 12.5px ui-monospace, "SF Mono", Menlo, monospace;
+    background: rgba(255, 255, 255, 0.07);
+    padding: 1px 5px;
+    border-radius: 5px;
+  }
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--text-dim);
+    padding: 4px 10px;
+    border: 1px solid var(--hairline);
+    border-radius: 999px;
+  }
+  .chip::before {
+    content: "";
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: rgb(var(--glow));
+    box-shadow: 0 0 8px rgba(var(--glow), 0.8);
+  }
+
+  /* ------------------------------------------------------------------
+     Input
+  ------------------------------------------------------------------ */
+  .composer {
+    display: flex;
+    gap: 8px;
+    padding: 14px;
+    border-top: 1px solid var(--hairline);
+  }
+  .composer input {
+    flex: 1;
+    min-width: 0;
+    font: 14px var(--font);
+    color: var(--text);
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--hairline);
+    border-radius: 999px;
+    padding: 11px 16px;
+    outline: none;
+    transition: border-color 0.25s, box-shadow 0.25s;
+  }
+  .composer input::placeholder { color: rgba(238, 242, 234, 0.35); }
+  .composer input:focus {
+    border-color: rgba(var(--glow), 0.4);
+    box-shadow: 0 0 0 4px rgba(var(--glow), 0.08);
+  }
+  .composer button {
+    width: 42px;
+    height: 42px;
+    flex: none;
+    border: 0;
+    border-radius: 50%;
+    background: rgb(var(--glow));
+    color: #10200a;
+    font-size: 18px;
+    cursor: pointer;
+    box-shadow: 0 0 18px rgba(var(--glow), 0.35);
+  }
+
+  /* Turn motion off for people who've asked their OS for less of it. */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before { animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<div class="backdrop-code" aria-hidden="true">def index_repo(github_url: str, rebuild: bool = False) -> IndexStats:
+    t0 = time.perf_counter()
+    github_url = normalize_url(github_url)
+    repo_path, repo_id = clone_or_update(github_url)
+    commit = _git(["rev-parse", "HEAD"], cwd=repo_path)
+
+    with get_conn() as conn:
+        indexed_commit, status = conn.execute(
+            """INSERT INTO repos (id, url) VALUES (%s, %s)
+               ON CONFLICT (id) DO UPDATE SET url = EXCLUDED.url
+               RETURNING indexed_commit, status""",
+            (repo_id, github_url),
+        ).fetchone()
+
+        if status == "ready" and indexed_commit == commit:
+            return IndexStats(repo_id, commit, cached=True)
+
+def resolve_calls(functions) -> list:
+    by_file_name, by_name = {}, {}
+    for fid, name, file_id, _ in functions:
+        by_file_name.setdefault((file_id, name), []).append(fid)
+        by_name.setdefault(name, []).append(fid)
+
+    edges = set()
+    for fid, _, file_id, call_names in functions:
+        for call in call_names or []:
+            targets = by_file_name.get((file_id, call))
+            if not targets and len(by_name.get(call, [])) == 1:
+                targets = by_name[call]
+            for target in targets or []:
+                if target != fid:
+                    edges.add((fid, target))
+    return sorted(edges)</div>
+
+<div class="controls" role="group" aria-label="Gloop mood">
+  <button data-mood="idle" aria-pressed="true">Idle</button>
+  <button data-mood="reading">Reading</button>
+  <button data-mood="thinking">Thinking</button>
+  <button data-mood="done">Done</button>
+  <button data-mood="error">Error</button>
+  <button class="play">▶ Play sequence</button>
+</div>
+
+<section class="panel" data-mood="idle">
+  <header class="panel-header">
+    <div class="gloop-wrap">
+      <div class="halo"></div>
+
+      <svg class="gloop" viewBox="0 0 200 210" aria-label="Gloop">
+        <defs>
+          <radialGradient id="body-fill" cx="38%" cy="30%" r="80%">
+            <stop offset="0%"  stop-color="#dcff7a" />
+            <stop offset="45%" stop-color="#a8e23a" />
+            <stop offset="100%" stop-color="#5c9e1b" />
+          </radialGradient>
+          <radialGradient id="foot-fill" cx="50%" cy="30%" r="70%">
+            <stop offset="0%" stop-color="#8ccb2e" />
+            <stop offset="100%" stop-color="#4b8615" />
+          </radialGradient>
+          <filter id="soft" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="3" />
+          </filter>
+          <clipPath id="clip-eye-l"><circle cx="70" cy="30" r="14" /></clipPath>
+          <clipPath id="clip-eye-r"><circle cx="130" cy="30" r="14" /></clipPath>
+        </defs>
+
+        <!-- light on the ground under Gloop -->
+        <ellipse cx="100" cy="200" rx="52" ry="6" fill="rgba(168,226,58,0.18)" filter="url(#soft)" />
+
+        <g class="g-root">
+          <!-- feet (drawn first so the body overlaps them) -->
+          <ellipse cx="76" cy="191" rx="15" ry="8" fill="url(#foot-fill)" />
+          <ellipse cx="124" cy="191" rx="15" ry="8" fill="url(#foot-fill)" />
+
+          <g class="g-squish">
+            <!-- left eye stalk: outer group leans by mood, inner group sways -->
+            <g class="stalk-l"><g class="sway-l">
+              <path d="M88,68 C86,54 76,46 71,40" fill="none" stroke="#9fdc35" stroke-width="7" stroke-linecap="round" />
+              <g class="eye-l">
+                <circle cx="70" cy="30" r="14" fill="#f6fff0" stroke="#6faf22" stroke-width="1.5" />
+                <g class="pupil" data-cx="70" data-cy="30">
+                  <circle cx="70" cy="30" r="6.2" fill="#101510" />
+                  <circle cx="72.2" cy="27.6" r="1.9" fill="#fff" />
+                </g>
+                <g clip-path="url(#clip-eye-l)">
+                  <rect class="lid-top" x="54" y="-14" width="32" height="30" fill="#98d933" />
+                  <rect class="lid-bottom" x="54" y="44" width="32" height="30" fill="#98d933" />
+                </g>
+              </g>
+            </g></g>
+
+            <!-- right eye stalk -->
+            <g class="stalk-r"><g class="sway-r">
+              <path d="M112,68 C114,54 124,46 129,40" fill="none" stroke="#9fdc35" stroke-width="7" stroke-linecap="round" />
+              <g class="eye-r">
+                <circle cx="130" cy="30" r="14" fill="#f6fff0" stroke="#6faf22" stroke-width="1.5" />
+                <g class="pupil" data-cx="130" data-cy="30">
+                  <circle cx="130" cy="30" r="6.2" fill="#101510" />
+                  <circle cx="132.2" cy="27.6" r="1.9" fill="#fff" />
+                </g>
+                <g clip-path="url(#clip-eye-r)">
+                  <rect class="lid-top" x="114" y="-14" width="32" height="30" fill="#98d933" />
+                  <rect class="lid-bottom" x="114" y="44" width="32" height="30" fill="#98d933" />
+                </g>
+              </g>
+            </g></g>
+
+            <!-- body -->
+            <path d="M100,58 C142,58 168,92 170,136 C172,172 145,192 100,192 C55,192 28,172 30,136 C32,92 58,58 100,58 Z"
+                  fill="url(#body-fill)" />
+            <!-- soft highlight -->
+            <ellipse cx="72" cy="86" rx="17" ry="9" transform="rotate(-28 72 86)" fill="#fff" opacity="0.32" filter="url(#soft)" />
+
+            <!-- cheeks -->
+            <ellipse cx="70" cy="113" rx="9" ry="5" fill="#ff8fb3" opacity="0.32" />
+            <ellipse cx="130" cy="113" rx="9" ry="5" fill="#ff8fb3" opacity="0.32" />
+
+            <!-- mouth (its shape is set per mood in CSS) -->
+            <path class="mouth" />
+
+            <!-- git touch: two commits with a branch splitting off -->
+            <g stroke="#4f8f17" stroke-width="3" stroke-linecap="round" fill="none" opacity="0.55">
+              <path d="M100,138 L100,172" />
+              <path d="M100,164 C100,154 113,156 113,147" />
+            </g>
+            <g fill="#4f8f17" opacity="0.55">
+              <circle cx="100" cy="138" r="4.5" />
+              <circle cx="100" cy="172" r="4.5" />
+              <circle cx="113" cy="145" r="4.5" />
+            </g>
+          </g>
+        </g>
+      </svg>
+    </div>
+
+    <div class="name">Gloop</div>
+    <div class="caption" id="caption">Ask me anything about this repo</div>
+  </header>
+
+  <div class="messages">
+    <div class="msg-user">How does indexing work?</div>
+    <div class="msg-answer" id="answer">
+      <p><code>index_repo</code> clones the repo, then checks whether this commit is already indexed. If it is, it returns right away.</p>
+      <p>Otherwise <code>_index</code> hashes every file, re-parses only the ones that changed, and embeds only new code in batches before writing everything in one transaction.</p>
+      <span class="chip">4 tools used</span>
+    </div>
+  </div>
+
+  <form class="composer" onsubmit="event.preventDefault(); playSequence();">
+    <input type="text" placeholder="Ask Gloop about this repo…" aria-label="Question" />
+    <button type="submit" aria-label="Send">↑</button>
+  </form>
+</section>
+
+<script>
+  const panel   = document.querySelector(".panel");
+  const gloop   = document.querySelector(".gloop");
+  const root    = document.querySelector(".g-root");
+  const caption = document.getElementById("caption");
+  const answer  = document.getElementById("answer");
+  const buttons = document.querySelectorAll(".controls button[data-mood]");
+  const pupils  = [...document.querySelectorAll(".pupil")];
+
+  const CAPTIONS = {
+    idle:     "Ask me anything about this repo",
+    reading:  "Reading the codebase…",
+    thinking: "Tracing <code>index_repo → _index</code>…",
+    done:     "Found it.",
+    error:    "Hmm, something went wrong.",
+  };
+
+  // Where the pupils look in moods that don't follow the cursor.
+  // Values are pixels in SVG units, relative to the center of each eye.
+  const FIXED_GAZE = {
+    reading:  { x: 0,  y: 4.5 },
+    thinking: { x: 3.5, y: -3.5 },
+    error:    { x: -2.5, y: 3.5 },
+  };
+
+  let mood = "idle";
+
+  // ---------------------------------------------------------------- moods
+  function setMood(next) {
+    mood = next;
+    panel.dataset.mood = next;
+    caption.innerHTML = CAPTIONS[next];
+    buttons.forEach(b => b.setAttribute("aria-pressed", b.dataset.mood === next));
+    answer.classList.toggle("show", next === "done" || next === "idle" && answer.dataset.seen);
+
+    if (next === "done") {
+      answer.dataset.seen = "1";
+      // Restart the hop animation: remove the class, force a reflow, add it back.
+      root.classList.remove("hop");
+      void root.getBoundingClientRect();
+      root.classList.add("hop");
+    }
+  }
+
+  buttons.forEach(b => b.addEventListener("click", () => setMood(b.dataset.mood)));
+
+  // A demo of a full question: reading, then thinking, then done.
+  let sequence = [];
+  function playSequence() {
+    sequence.forEach(clearTimeout);
+    answer.classList.remove("show");
+    delete answer.dataset.seen;
+    setMood("reading");
+    sequence = [
+      setTimeout(() => setMood("thinking"), 2600),
+      setTimeout(() => setMood("done"), 6200),
+      setTimeout(() => setMood("idle"), 9400),
+    ];
+  }
+  document.querySelector(".play").addEventListener("click", playSequence);
+
+  // ---------------------------------------------------------------- eyes follow the cursor
+  let mouse = null;
+  window.addEventListener("pointermove", e => { mouse = { x: e.clientX, y: e.clientY }; });
+  window.addEventListener("pointerleave", () => { mouse = null; });
+
+  const MAX_LOOK = 5; // how far the pupil can move, in SVG units
+
+  function updatePupils() {
+    const svgRect = gloop.getBoundingClientRect();
+    const scale = 200 / svgRect.width; // screen pixels → SVG units
+
+    pupils.forEach(p => {
+      let x = 0, y = 0;
+
+      if (FIXED_GAZE[mood]) {
+        ({ x, y } = FIXED_GAZE[mood]);
+      } else if (mouse) {
+        // Eye center on screen
+        const cx = svgRect.left + (+p.dataset.cx) / scale;
+        const cy = svgRect.top + (+p.dataset.cy) / scale;
+        const dx = mouse.x - cx;
+        const dy = mouse.y - cy;
+        const dist = Math.hypot(dx, dy);
+        // Look further the further away the cursor is, up to MAX_LOOK.
+        const reach = Math.min(MAX_LOOK, dist / 40);
+        if (dist > 0) {
+          x = (dx / dist) * reach;
+          y = (dy / dist) * reach;
+        }
+      }
+      p.style.transform = `translate(${x}px, ${y}px)`;
+    });
+
+    requestAnimationFrame(updatePupils);
+  }
+  requestAnimationFrame(updatePupils);
+
+  // ---------------------------------------------------------------- blinking at random intervals
+  function blink() {
+    gloop.classList.add("blinking");
+    setTimeout(() => gloop.classList.remove("blinking"), 120);
+  }
+  function scheduleBlink() {
+    const wait = 2200 + Math.random() * 4000;
+    setTimeout(() => {
+      if (mood !== "done") {          // happy squint eyes look odd mid-blink
+        blink();
+        if (Math.random() < 0.2) setTimeout(blink, 260); // occasional double blink
+      }
+      scheduleBlink();
+    }, wait);
+  }
+  scheduleBlink();
+</script>
+</body>
+</html>
