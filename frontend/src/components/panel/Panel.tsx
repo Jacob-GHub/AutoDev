@@ -29,15 +29,21 @@ const Panel = forwardRef<HTMLInputElement, PanelProps>(
       <header className="ad-header">
         <div className="ad-header-actions">
           {turns.length > 0 && (
-            <button className="ad-text-btn" onClick={onClear}>Clear</button>
+            <button className="ad-text-btn" onClick={onClear}>
+              Clear
+            </button>
           )}
-          <button className="ad-icon-btn" onClick={onClose} aria-label="Close">✕</button>
+          <button className="ad-icon-btn" onClick={onClose} aria-label="Close">
+            x
+          </button>
         </div>
 
         {/* Only mount Gloop while open, so his animation loop isn't running off-screen. */}
         {open && <Gloop mood={mood} size={124} />}
         <div className="ad-name">Gloop</div>
-        <div className="ad-caption" aria-live="polite">{caption}</div>
+        <div className="ad-caption" aria-live="polite">
+          {caption}
+        </div>
       </header>
 
       <MessageList turns={turns} />

@@ -116,8 +116,10 @@ module.exports = {
           },
         ],
       },
+      { test: /\.css$/, resourceQuery: /raw/, type: 'asset/source' },
       {
         test: /\.css$/,
+        resourceQuery: { not: [/raw/] },
         use: ['style-loader', 'css-loader', 'postcss-loader'],
       },
       {

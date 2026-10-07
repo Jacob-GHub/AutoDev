@@ -1,51 +1,52 @@
-// components/responses/ToolCallTrace.jsx
-import React, { forwardRef, useState } from 'react'
+import React, { useState } from 'react'
+import type { ToolCall } from '../../api/types'
 
-const toolLabels = {
+const TOOL_LABELS: Record<string, string> = {
   find_function_location: 'Located',
   get_callers: 'Found callers of',
   get_called_functions: 'Found calls from',
-  get_function_code: 'Read code of',
+  get_function_code: 'Read',
   semantic_search: 'Searched for',
-  get_repo_structure: 'Read repo structure',
+  get_repo_structure: 'Read the repo structure',
 }
 
-type ToolProps = {
-  toolCalls: Record<string, string>[]
-}
+const describeArgs = (args: Record<string, unknown>) =>
+  Object.values(args ?? {})
+    .map(String)
+    .join(', ')
 
-const ToolCallTrace = ({ toolCalls }) => {
+/** A collapsible list of the steps the agent took to reach its answer. */
+export default function ToolCallTrace({ toolCalls }: { toolCalls: ToolCall[] }) {
   const [expanded, setExpanded] = useState(false)
-
-  if (!toolCalls || toolCalls.length === 0) return null
+  if (!toolCalls?.length) return null
 
   return (
-    <div className="mb-3">
+    <div className="ad-trace">
       <button
+        className={`ad-trace-toggle ${expanded ? 'is-expanded' : ''}`}
         onClick={() => setExpanded(!expanded)}
-        className="flex items-center gap-2 text-xs text-white/40 hover:text-white/60 bg-white/5 border border-white/10 rounded px-3 py-1 transition-colors"
+        aria-expanded={expanded}
       >
-        <span>{expanded ? '▼' : '▶'}</span>
-        <span>
-          Explored {toolCalls.length} step{toolCalls.length > 1 ? 's' : ''}
+        <span className="ad-trace-dot" />
+        Explored {toolCalls.length} step{toolCalls.length === 1 ? '' : 's'}
+        <span className="ad-trace-chevron" aria-hidden="true">
+          &gt;
         </span>
       </button>
 
       {expanded && (
-        <div className="mt-2 pl-3 border-l border-white/10 space-y-2">
-          {toolCalls.map((tc, idx) => (
-            <div key={idx} className="flex items-center gap-2">
-              <span className="text-white/30 text-xs">{idx + 1}.</span>
-              <span className="text-white/60 text-xs">{toolLabels[tc.tool] || tc.tool}</span>
-              <span className="text-white/80 text-xs font-mono bg-white/5 px-1.5 py-0.5 rounded">
-                {Object.values(tc.args).join(', ')}
-              </span>
-            </div>
-          ))}
-        </div>
+        <ol className="ad-trace-steps">
+          {toolCalls.map((call, i) => {
+            const args = describeArgs(call.args)
+            return (
+              <li key={i}>
+                <span>{TOOL_LABELS[call.tool] ?? call.tool}</span>
+                {args && <code>{args}</code>}
+              </li>
+            )
+          })}
+        </ol>
       )}
     </div>
   )
 }
-
-export default ToolCallTrace

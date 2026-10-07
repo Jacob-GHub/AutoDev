@@ -1,34 +1,8 @@
-import { gloopStyles } from '../components/gloop/gloop.styles'
-import { panelStyles } from '../components/panel/panel.styles'
+// The "?raw" suffix imports each stylesheet as a plain string instead of injecting it
+// into the page (webpack.config.js has a rule for this). A Shadow DOM can't see
+// page stylesheets, so content/index.tsx puts this text in a <style> tag inside it.
+import baseCss from './base.css?raw'
+import gloopCss from '../components/gloop/gloop.css?raw'
+import panelCss from '../components/panel/panel.css?raw'
 
-/** Design tokens and a reset for the shadow root, so GitHub's styles can't leak in. */
-const baseStyles = /* css */ `
-:host {
-  all: initial;
-  /* --glow is Gloop's color as "r, g, b", so it works with any alpha: rgba(var(--glow), 0.3) */
-  --glow: 132, 246, 62;
-  --text: #eef2ea;
-  --text-dim: rgba(238, 242, 234, 0.55);
-  --glass: rgba(14, 16, 14, 0.86);
-  --hairline: rgba(255, 255, 255, 0.08);
-  --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
-  --mono: ui-monospace, "SF Mono", Menlo, monospace;
-}
-
-.ad-app {
-  font-family: var(--font);
-  -webkit-font-smoothing: antialiased;
-  color: var(--text);
-}
-.ad-app *,
-.ad-app *::before,
-.ad-app *::after { box-sizing: border-box; }
-
-/* Respect the OS "reduce motion" setting. */
-@media (prefers-reduced-motion: reduce) {
-  .ad-app *,
-  .ad-app *::before { animation: none !important; transition: none !important; }
-}
-`
-
-export const appStyles = [baseStyles, gloopStyles, panelStyles].join('\n')
+export const appStyles = [baseCss, gloopCss, panelCss].join('\n')

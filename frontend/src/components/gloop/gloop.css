@@ -1,0 +1,143 @@
+/*
+ * Gloop's motion. The drawing itself is the SVG in Gloop.tsx; this file only moves it.
+ *
+ * Three ideas cover everything here:
+ *   1. transform-origin  - the pivot point each part rotates or scales around
+ *   2. @keyframes        - motion that loops forever (breathing, swaying)
+ *   3. [data-mood="..."] - how each part looks in each mood; transitions ease between them
+ */
+
+.gloop {
+  position: relative;
+  flex: none;
+}
+
+/* Soft light behind Gloop. Its brightness is the main mood signal. */
+.gloop-halo {
+  position: absolute;
+  left: 50%;
+  top: 58%;
+  width: 115%;
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(var(--glow), 0.55), transparent 65%);
+  filter: blur(18px);
+  opacity: 0.25;
+  animation: gloop-halo-breathe 5s ease-in-out infinite;
+  transition: opacity 0.8s ease;
+  pointer-events: none;
+}
+
+.gloop-svg {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  filter: drop-shadow(0 0 14px rgba(var(--glow), 0.25));
+  transition: filter 0.8s ease;
+}
+
+/* ---------------------------------------------------------------- 1. pivot points
+   "transform-box: view-box" means the transform-origin numbers are in the SVG's own
+   coordinates (the same 200 x 210 space the shapes are drawn in). */
+.gloop-root,
+.gloop-squish,
+.gloop-stalk-l, .gloop-stalk-r,
+.gloop-sway-l,  .gloop-sway-r,
+.gloop-eye-l,   .gloop-eye-r { transform-box: view-box; }
+
+.gloop-root    { transform-origin: 100px 196px; }  /* between his feet */
+.gloop-squish  { transform-origin: 100px 192px; }  /* the ground under his body */
+.gloop-stalk-l,
+.gloop-sway-l  { transform-origin: 88px 68px; }    /* where the left stalk meets the body */
+.gloop-stalk-r,
+.gloop-sway-r  { transform-origin: 112px 68px; }   /* where the right stalk meets the body */
+.gloop-eye-l   { transform-origin: 70px 30px; }    /* center of the left eye */
+.gloop-eye-r   { transform-origin: 130px 30px; }   /* center of the right eye */
+
+/* ---------------------------------------------------------------- 2. always-on loops */
+.gloop-squish { animation: gloop-breathe 4.2s ease-in-out infinite; }
+.gloop-sway-l { animation: gloop-sway 3.3s ease-in-out infinite; }
+.gloop-sway-r { animation: gloop-sway 3.8s ease-in-out -1.2s infinite; } /* out of step, so it looks organic */
+
+/* Transitions: whenever a mood changes one of these, it eases instead of snapping. */
+.gloop-root       { transition: transform 0.6s cubic-bezier(.3, 1.4, .5, 1); }
+.gloop-stalk-l,
+.gloop-stalk-r    { transition: transform 0.7s cubic-bezier(.3, 1.3, .5, 1); }
+.gloop-eye        { transition: transform 0.09s ease; }
+.gloop-pupil      { transition: transform 0.14s ease-out; }   /* useEyeTracking moves this */
+.gloop-lid-top,
+.gloop-lid-bottom { transition: transform 0.45s cubic-bezier(.3, 1.2, .5, 1); }
+.gloop-mouth      { transition: d 0.45s cubic-bezier(.3, 1.3, .5, 1); }
+
+/* Blink: useBlink adds .blinking for a moment, squashing both eyes flat. */
+.gloop-svg.blinking .gloop-eye { transform: scaleY(0.08); }
+
+/* --------------------------------------------------------------- 3. moods */
+
+/* reading: leans in toward the code */
+.gloop[data-mood="reading"] .gloop-stalk-l  { transform: rotate(9deg); }
+.gloop[data-mood="reading"] .gloop-stalk-r  { transform: rotate(-9deg); }
+.gloop[data-mood="reading"] .gloop-lid-top  { transform: translateY(6px); }
+.gloop[data-mood="reading"] .gloop-mouth    { d: path("M95 106Q100 108 105 106"); }
+.gloop[data-mood="reading"] .gloop-halo     { animation: gloop-halo-pulse 2.4s ease-in-out infinite; }
+
+/* thinking: eyes narrow, body sways */
+.gloop[data-mood="thinking"] .gloop-root    { animation: gloop-ponder 2.6s ease-in-out infinite; }
+.gloop[data-mood="thinking"] .gloop-stalk-l { transform: rotate(-6deg); }
+.gloop[data-mood="thinking"] .gloop-stalk-r { transform: rotate(4deg); }
+.gloop[data-mood="thinking"] .gloop-lid-top { transform: translateY(11px); }
+.gloop[data-mood="thinking"] .gloop-mouth   { d: path("M94 106Q100 104 106 106"); }
+.gloop[data-mood="thinking"] .gloop-halo    { opacity: 0.45; animation: gloop-halo-pulse 1.8s ease-in-out infinite; }
+
+/* done: a happy hop, smiling eyes, one soft bloom */
+.gloop[data-mood="done"] .gloop-root.hop    { animation: gloop-hop 0.9s cubic-bezier(.3, .8, .4, 1); }
+.gloop[data-mood="done"] .gloop-lid-bottom  { transform: translateY(-12px); }
+.gloop[data-mood="done"] .gloop-mouth       { d: path("M90 102Q100 117 110 102"); }
+.gloop[data-mood="done"] .gloop-halo        { animation: gloop-bloom 2.2s ease-out forwards; }
+.gloop[data-mood="done"] .gloop-svg         { filter: drop-shadow(0 0 20px rgba(var(--glow), 0.4)); }
+
+/* error: tilts, droopy eyes, color fades */
+.gloop[data-mood="error"] .gloop-root       { transform: rotate(-7deg); }
+.gloop[data-mood="error"] .gloop-stalk-l    { transform: rotate(-14deg); }
+.gloop[data-mood="error"] .gloop-stalk-r    { transform: rotate(10deg); }
+.gloop[data-mood="error"] .gloop-lid-top    { transform: translateY(9px); }
+.gloop[data-mood="error"] .gloop-mouth      { d: path("M93 109Q100 102 107 109"); }
+.gloop[data-mood="error"] .gloop-halo       { opacity: 0.08; animation: none; }
+.gloop[data-mood="error"] .gloop-svg        { filter: saturate(0.55) drop-shadow(0 0 8px rgba(var(--glow), 0.1)); }
+
+/* ---------------------------------------------------------------- keyframes */
+@keyframes gloop-breathe {
+  0%, 100% { transform: scale(1, 1); }
+  50%      { transform: scale(1.025, 0.975); }
+}
+@keyframes gloop-sway {
+  0%, 100% { transform: rotate(-3deg); }
+  50%      { transform: rotate(3deg); }
+}
+@keyframes gloop-ponder {
+  0%, 100% { transform: rotate(-2.5deg); }
+  50%      { transform: rotate(2.5deg); }
+}
+@keyframes gloop-hop {
+  0%   { transform: translateY(0) scale(1, 1); }
+  18%  { transform: translateY(0) scale(1.1, 0.88); }
+  45%  { transform: translateY(-22px) scale(0.94, 1.07); }
+  70%  { transform: translateY(0) scale(1.08, 0.92); }
+  85%  { transform: translateY(0) scale(0.98, 1.02); }
+  100% { transform: translateY(0) scale(1, 1); }
+}
+@keyframes gloop-halo-breathe {
+  0%, 100% { opacity: 0.18; }
+  50%      { opacity: 0.3; }
+}
+@keyframes gloop-halo-pulse {
+  0%, 100% { opacity: 0.22; }
+  50%      { opacity: 0.5; }
+}
+@keyframes gloop-bloom {
+  0%   { opacity: 0.3; }
+  25%  { opacity: 0.85; }
+  100% { opacity: 0.3; }
+}

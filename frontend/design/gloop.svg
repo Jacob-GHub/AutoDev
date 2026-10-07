@@ -1,0 +1,79 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="210" viewBox="0 0 200 210" fill="none">
+  <defs>
+    <radialGradient id="body-gradient" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse"
+                    gradientTransform="translate(83 98) scale(112 107)">
+      <stop offset="0" stop-color="#D6FF7E"/>
+      <stop offset="0.45" stop-color="#84F43E"/>
+      <stop offset="1" stop-color="#34C72F"/>
+    </radialGradient>
+    <radialGradient id="foot-gradient-left" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse"
+                    gradientTransform="translate(76 188) scale(21 11)">
+      <stop offset="0" stop-color="#6FE93A"/>
+      <stop offset="1" stop-color="#2FAE27"/>
+    </radialGradient>
+    <radialGradient id="foot-gradient-right" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse"
+                    gradientTransform="translate(124 188) scale(21 11)">
+      <stop offset="0" stop-color="#6FE93A"/>
+      <stop offset="1" stop-color="#2FAE27"/>
+    </radialGradient>
+    <filter id="soft-blur" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="3"/>
+    </filter>
+    <clipPath id="eye-left-clip"><circle cx="70" cy="30" r="14"/></clipPath>
+    <clipPath id="eye-right-clip"><circle cx="130" cy="30" r="14"/></clipPath>
+  </defs>
+
+  <ellipse id="ground-glow" cx="100" cy="200" rx="52" ry="6" fill="#84F63E" fill-opacity="0.2" filter="url(#soft-blur)"/>
+
+  <g id="feet">
+    <ellipse id="foot-left" cx="76" cy="191" rx="15" ry="8" fill="url(#foot-gradient-left)"/>
+    <ellipse id="foot-right" cx="124" cy="191" rx="15" ry="8" fill="url(#foot-gradient-right)"/>
+  </g>
+
+  <g id="stalk-left">
+    <path id="stem-left" d="M88 68C86 54 76 46 71 40" stroke="#7FF03F" stroke-width="7" stroke-linecap="round"/>
+    <g id="eye-left">
+      <circle id="eyeball-left" cx="70" cy="30" r="14" fill="#F6FFF0" stroke="#46C82E" stroke-width="1.5"/>
+      <g id="pupil-left">
+        <circle cx="70" cy="30" r="6.2" fill="#101510"/>
+        <circle id="pupil-shine-left" cx="72.2" cy="27.6" r="1.9" fill="#FFFFFF"/>
+      </g>
+      <g id="eyelids-left" clip-path="url(#eye-left-clip)">
+        <rect id="lid-top-left" x="54" y="-14" width="32" height="30" fill="#7CEE3D"/>
+        <rect id="lid-bottom-left" x="54" y="44" width="32" height="30" fill="#7CEE3D"/>
+      </g>
+    </g>
+  </g>
+
+  <g id="stalk-right">
+    <path id="stem-right" d="M112 68C114 54 124 46 129 40" stroke="#7FF03F" stroke-width="7" stroke-linecap="round"/>
+    <g id="eye-right">
+      <circle id="eyeball-right" cx="130" cy="30" r="14" fill="#F6FFF0" stroke="#46C82E" stroke-width="1.5"/>
+      <g id="pupil-right">
+        <circle cx="130" cy="30" r="6.2" fill="#101510"/>
+        <circle id="pupil-shine-right" cx="132.2" cy="27.6" r="1.9" fill="#FFFFFF"/>
+      </g>
+      <g id="eyelids-right" clip-path="url(#eye-right-clip)">
+        <rect id="lid-top-right" x="114" y="-14" width="32" height="30" fill="#7CEE3D"/>
+        <rect id="lid-bottom-right" x="114" y="44" width="32" height="30" fill="#7CEE3D"/>
+      </g>
+    </g>
+  </g>
+
+  <path id="body" d="M100 58C142 58 168 92 170 136C172 172 145 192 100 192C55 192 28 172 30 136C32 92 58 58 100 58Z" fill="url(#body-gradient)"/>
+  <ellipse id="body-shine" cx="72" cy="86" rx="17" ry="9" transform="rotate(-28 72 86)" fill="#FFFFFF" fill-opacity="0.32" filter="url(#soft-blur)"/>
+
+  <g id="face">
+    <ellipse id="cheek-left" cx="70" cy="113" rx="9" ry="5" fill="#FF6FA3" fill-opacity="0.5"/>
+    <ellipse id="cheek-right" cx="130" cy="113" rx="9" ry="5" fill="#FF6FA3" fill-opacity="0.5"/>
+    <path id="mouth" d="M92 104Q100 111 108 104" stroke="#0F3A0C" stroke-width="3.2" stroke-linecap="round"/>
+  </g>
+
+  <g id="git-mark" opacity="0.55">
+    <path id="git-trunk" d="M100 138L100 172" stroke="#27A325" stroke-width="3" stroke-linecap="round"/>
+    <path id="git-branch" d="M100 164C100 154 113 156 113 147" stroke="#27A325" stroke-width="3" stroke-linecap="round"/>
+    <circle id="git-commit-top" cx="100" cy="138" r="4.5" fill="#27A325"/>
+    <circle id="git-commit-bottom" cx="100" cy="172" r="4.5" fill="#27A325"/>
+    <circle id="git-commit-branch" cx="113" cy="145" r="4.5" fill="#27A325"/>
+  </g>
+</svg>

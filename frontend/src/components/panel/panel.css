@@ -1,5 +1,3 @@
-/** Styles for the launcher, glass panel, conversation, and composer. */
-export const panelStyles = /* css */ `
 /* ---------------------------------------------------------------- launcher */
 .ad-launcher {
   position: fixed;
@@ -107,8 +105,7 @@ export const panelStyles = /* css */ `
   align-items: center;
   gap: 4px;
 }
-.ad-text-btn,
-.ad-icon-btn {
+.ad-text-btn {
   font: 500 12px var(--font);
   color: var(--text-dim);
   background: none;
@@ -118,9 +115,7 @@ export const panelStyles = /* css */ `
   cursor: pointer;
   transition: color 0.2s, background 0.2s;
 }
-.ad-icon-btn { font-size: 13px; width: 30px; height: 30px; padding: 0; }
-.ad-text-btn:hover,
-.ad-icon-btn:hover { color: var(--text); background: rgba(255, 255, 255, 0.08); }
+.ad-text-btn:hover { color: var(--text); background: rgba(255, 255, 255, 0.08); }
 
 .ad-name {
   margin-top: 4px;
@@ -240,7 +235,7 @@ export const panelStyles = /* css */ `
   background: rgb(var(--glow));
   box-shadow: 0 0 8px rgba(var(--glow), 0.8);
 }
-.ad-trace-chevron { transition: transform 0.25s ease; }
+.ad-trace-chevron { font: 11px var(--mono); transition: transform 0.25s ease; }
 .ad-trace-toggle.is-expanded .ad-trace-chevron { transform: rotate(90deg); }
 .ad-trace-steps {
   list-style: none;
@@ -289,14 +284,14 @@ export const panelStyles = /* css */ `
   box-shadow: 0 0 0 4px rgba(var(--glow), 0.08);
 }
 .ad-composer button {
-  width: 42px;
-  height: 42px;
   flex: none;
+  height: 42px;
+  padding: 0 18px;
   border: 0;
-  border-radius: 50%;
+  border-radius: 999px;
   background: rgb(var(--glow));
   color: #0b2a08;
-  font: 600 18px var(--font);
+  font: 600 14px var(--font);
   cursor: pointer;
   box-shadow: 0 0 18px rgba(var(--glow), 0.35);
   transition: opacity 0.25s, box-shadow 0.25s;
@@ -306,4 +301,3 @@ export const panelStyles = /* css */ `
   box-shadow: none;
   cursor: default;
 }
-`
