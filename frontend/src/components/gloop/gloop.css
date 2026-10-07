@@ -1,12 +1,3 @@
-/*
- * Gloop's motion. The drawing itself is the SVG in Gloop.tsx; this file only moves it.
- *
- * Three ideas cover everything here:
- *   1. transform-origin  - the pivot point each part rotates or scales around
- *   2. @keyframes        - motion that loops forever (breathing, swaying)
- *   3. [data-mood="..."] - how each part looks in each mood; transitions ease between them
- */
-
 .gloop {
   position: relative;
   flex: none;
