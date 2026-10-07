@@ -5,17 +5,9 @@ import { useEyeTracking } from './useEyeTracking'
 
 type GloopProps = {
   mood: GloopMood
-  /** Width in px; height scales with it. */
   size?: number
 }
 
-/**
- * Gloop, AutoDev's mascot. The drawing is an inline SVG (the same artwork as
- * design/gloop.svg, which opens in Figma). Each part that moves has a class name.
- *
- * All motion lives in gloop.css: it is keyed off data-mood, which this component sets.
- * The two hooks add cursor-following eyes and blinking.
- */
 export default function Gloop({ mood, size = 140 }: GloopProps) {
   const svgRef = useRef<SVGSVGElement>(null)
   const rootRef = useRef<SVGGElement>(null)
@@ -32,8 +24,6 @@ export default function Gloop({ mood, size = 140 }: GloopProps) {
     root.classList.add('hop')
   }, [mood])
 
-  // Gradients, blurs and clips are referenced by id. Two Gloops can be on the page
-  // at once (launcher and panel), so each one gets its own unique ids.
   const uid = useId().replace(/:/g, '')
   const id = (name: string) => `gloop-${uid}-${name}`
   const ref = (name: string) => `url(#${id(name)})`
@@ -152,15 +142,11 @@ export default function Gloop({ mood, size = 140 }: GloopProps) {
 
 type EyeStalkProps = {
   side: 'l' | 'r'
-  /** x position of the eye's center */
   cx: number
-  /** path of the stalk's stem */
   stem: string
-  /** clip that keeps the eyelids inside the round eyeball */
   clip: string
 }
 
-/** One eye on a stalk: the outer group leans per mood, the inner group sways on a loop. */
 function EyeStalk({ side, cx, stem, clip }: EyeStalkProps) {
   return (
     <g className={`gloop-stalk-${side}`}>

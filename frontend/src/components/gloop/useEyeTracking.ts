@@ -3,10 +3,6 @@ import { FIXED_GAZE, type GloopMood } from './moods'
 
 const MAX_LOOK = 5 // how far a pupil can move from the center of its eye, in SVG units
 
-/**
- * Moves Gloop's pupils toward the cursor every frame,
- * or to a fixed gaze in moods like reading and thinking.
- */
 export function useEyeTracking(svgRef: RefObject<SVGSVGElement>, mood: GloopMood) {
   const moodRef = useRef(mood)
   moodRef.current = mood
