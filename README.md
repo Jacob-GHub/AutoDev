@@ -6,6 +6,7 @@ AutoDev is a Chrome extension with a small mascot named Gloop. Open a repository
 click Gloop, and ask something like "How does indexing work?" or "What calls this
 function?". An AI agent reads the code, follows how functions call each other, and
 answers with the steps it took.
+<img width="1261" height="720" alt="chrome-capture-2026-10-07-ezgif com-optimize" src="https://github.com/user-attachments/assets/a6ac9f1e-2426-4cd3-94e2-d4d84a7f82e8" />
 
 ## How it works
 
